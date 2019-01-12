@@ -92,6 +92,7 @@ Plug 'mattn/emmet-vim'
 " javascript
 "" Javascript Bundle
 Plug 'jelera/vim-javascript-syntax'
+Plug 'millermedeiros/vim-esformatter'
 
 
 " lua

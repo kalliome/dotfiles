@@ -440,9 +440,7 @@ if has('macunix')
 endif
 
 "" Buffer nav
-noremap <leader>z :bp<CR>
 noremap <leader>q :bp<CR>
-noremap <leader>x :bn<CR>
 noremap <leader>w :bn<CR>
 
 "" Close buffer
@@ -492,6 +490,9 @@ augroup END
 
 " php
 
+" will run esformatter after pressing <leader> followed by the 'e' and 's' keys
+nnoremap <silent> <leader>x :Esformatter<CR>
+vnoremap <silent> <leader>x :EsformatterVisual<CR>
 
 "*****************************************************************************
 "*****************************************************************************

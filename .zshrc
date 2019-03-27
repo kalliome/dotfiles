@@ -40,6 +40,11 @@ nr () { npm run $@; }
 PROMPT_TITLE='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/~}\007"'
 export PROMPT_COMMAND="${PROMPT_COMMAND} ${PROMPT_TITLE}; "
 
+bindkey "^[^[[D" backward-word
+bindkey "^[^[[C" forward-word
+bindkey "^[^[[A" beginning-of-line
+bindkey "^[^[[B" end-of-line
+
 # Load local zshrc
 if [ -f $HOME/.zshrc.local ]; then
   source $HOME/.zshrc.local

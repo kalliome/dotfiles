@@ -11,6 +11,11 @@ export EDITOR=vim
 HIST_STAMPS="dd.mm.yyyy"
 ZSH_THEME="avit"
 
+plugins=(
+  git
+  vi-mode
+)
+
 source $ZSH/oh-my-zsh.sh
 
 ex () {

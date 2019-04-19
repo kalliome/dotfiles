@@ -74,6 +74,12 @@ endif
 
 Plug 'honza/vim-snippets'
 
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-b>"
+let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+
+let g:UltiSnipsEditSplit="vertical"
+
 "" Color
 Plug 'joshdick/onedark.vim'
 Plug 'rakr/vim-one'
@@ -475,6 +481,27 @@ nnoremap <silent> <leader><space> :noh<cr>
 "noremap <C-l> <C-w>l
 "noremap <C-h> <C-w>h
 
+" Browse airline tabs
+:nnoremap <C-p> :bnext<CR>
+:nnoremap <C-o> :bprevious<CR>
+
+" Map Control S for save
+noremap <silent> <C-S> :update<CR>
+vnoremap <silent> <C-S> <C-C>:update<CR>
+inoremap <silent> <C-S>  <C-O>:update<CR>
+
+" Comment block
+vnoremap <silent> <C-k> :Commentary<cr>
+
+" Close current buffer
+noremap <silent> <C-q> :Bclose!<CR>
+
+" Toggle Nerdtree
+noremap <silent> <C-f> ::NERDTreeToggle<CR>
+
+" Select all
+map <C-a> <esc>ggVG<CR>]
+
 "" Vmap for maintain Visual Mode after shifting > and <
 vmap < <gv
 vmap > >gv
@@ -561,3 +588,12 @@ else
   let g:airline_symbols.readonly = ''
   let g:airline_symbols.linenr = ''
 endif
+
+let g:user_emmet_expandabbr_key='<Tab>'
+imap <expr> <tab> emmet#expandAbbrIntelligent("\<tab>")
+
+let g:user_emmet_settings = {
+      \  'javascript' : {
+      \      'extends' : 'jsx',
+      \  },
+      \}

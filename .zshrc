@@ -7,6 +7,8 @@ export LC_CTYPE=en_US.utf-8
 export PYTHONIOENCODING=utf-8
 
 export EDITOR=vim
+export LSCOLORS=""
+export LS_COLORS=""
 
 HIST_STAMPS="dd.mm.yyyy"
 ZSH_THEME="avit"

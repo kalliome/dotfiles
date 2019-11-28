@@ -8,32 +8,36 @@
 
 # All SpaceVim option below [option] section
 [options]
-    # set spacevim theme. by default colorscheme layer is not loaded,
-    # if you want to use more colorscheme, please load the colorscheme
-    # layer
-    colorscheme = "onedark"
-    colorscheme_bg = "dark"
-    # Disable statusline separator, if you want to use other value, please
-    # install nerd fonts
-    statusline_separator = "arrow"
-    statusline_inactive_separator = "arrow"
-    buffer_index_type = 4
-    enable_tabline_filetype_icon = true
-    enable_statusline_mode = false
-    enable_language_specific_leader = false
-    enable_guicolors = false
-    bootstrap_after = "myspace#after"
+  # set spacevim theme. by default colorscheme layer is not loaded,
+  # if you want to use more colorscheme, please load the colorscheme
+  # layer
+  colorscheme = "onedark"
+  colorscheme_bg = "dark"
+  # Disable statusline separator, if you want to use other value, please
+  # install nerd fonts
+  statusline_separator = "arrow"
+  statusline_inactive_separator = "arrow"
+  buffer_index_type = 4
+  enable_tabline_filetype_icon = true
+  enable_statusline_mode = false
+  enable_language_specific_leader = false
+  enable_guicolors = true
+  bootstrap_after = "myspace#after"
+  bootstrap_before = "myspace#before"
+  filetree_direction = "left"
+  #wildignore = "*/tmp/*,*.so,*.swp,*.zip,*.class,tags,*.jpg,*.ttf,*.TTF,*.png,*/target/*,.git,.svn,.hg,.DS_Store,*.svg,*/node_modules/*,*/bower_components/*,vendor,node_modules,bower_components"
+  wildignore = "node_modules,bower_components,.git.DS_Store,vendor,*.jpg,*.jpeg,*.png,*.ttf,fontawesome"
 
 # Enable autocomplete layer
 [[layers]]
-name = 'autocomplete'
-auto-completion-return-key-behavior = "complete"
-auto-completion-tab-key-behavior = "smart"
+  name = 'autocomplete'
+  auto-completion-return-key-behavior = "complete"
+  auto-completion-tab-key-behavior = "smart"
 
 [[layers]]
-name = 'shell'
-default_position = 'top'
-default_height = 30
+  name = 'shell'
+  default_position = 'bottom'
+  default_height = 30
 
 [[layers]]
   name = "lang#javascript"
@@ -42,4 +46,27 @@ default_height = 30
   name = "colorscheme"
 
 [[layers]]
-  name = "denite"
+  name = "ctrlp"
+
+[[layers]]
+  name = "lang#coffeescript"
+
+#[[layers]]
+#  name = "lang#php"
+
+[[layers]]
+  name = "git"
+
+[[layers]]
+  name = "tmux"
+
+[[layers]]
+  name = "lang#html"
+
+[[custom_plugins]]
+  name = "captbaritone/better-indent-support-for-php-with-html"
+  
+#[[custom_plugins]]
+# name = "romainl/flattened"
+
+

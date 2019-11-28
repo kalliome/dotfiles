@@ -51,9 +51,6 @@
 [[layers]]
   name = "lang#coffeescript"
 
-#[[layers]]
-#  name = "lang#php"
-
 [[layers]]
   name = "git"
 
@@ -65,8 +62,6 @@
 
 [[custom_plugins]]
   name = "captbaritone/better-indent-support-for-php-with-html"
-  
-#[[custom_plugins]]
-# name = "romainl/flattened"
 
-
+[[layers]]
+  name = "sudo"

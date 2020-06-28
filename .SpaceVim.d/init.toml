@@ -65,3 +65,7 @@
 
 [[layers]]
   name = "sudo"
+
+[[layers]]
+  name = "checked"
+  enable = false

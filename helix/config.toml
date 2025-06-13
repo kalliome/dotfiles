@@ -1,6 +1,27 @@
 theme = "catppuccin_macchiato"
+
 [editor]
+line-number = "relative"
+color-modes = true
+cursorline = true
+rulers = [100]
+bufferline = "multiple"
+true-color = true
 auto-format = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+
+[editor.soft-wrap]
+enable = true
+wrap-indicator = ""
+
+
 # ~/.config/helix/config.toml
 [keys.normal]
 C-y = ":sh zellij run -n Yazi -c -f -x 10% -y 10% --width 80% --height 80% -- bash ~/.config/helix/yazi-picker.sh open"

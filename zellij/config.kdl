@@ -7,7 +7,6 @@ keybinds clear-defaults=true {
         bind "Alt g" { SwitchToMode "normal"; }
     }
     pane {
-        bind "left" { MoveFocus "left"; }
         bind "down" { MoveFocus "down"; }
         bind "up" { MoveFocus "up"; }
         bind "right" { MoveFocus "right"; }
@@ -276,6 +275,7 @@ keybinds clear-defaults=true {
         bind "p" { GoToPreviousTab; SwitchToMode "normal"; }
         bind "z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
     }
+
 }
 
 // Plugin aliases - can be used to change the implementation of Zellij

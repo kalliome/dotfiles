@@ -8,6 +8,7 @@ rulers = [100]
 bufferline = "multiple"
 true-color = true
 auto-format = true
+clipboard-provider = "auto"
 
 [editor.cursor-shape]
 insert = "bar"

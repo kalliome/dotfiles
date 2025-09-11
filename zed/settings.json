@@ -1,0 +1,64 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "ssh_connections": [
+    {
+      "host": "mini",
+      "projects": [
+        {
+          "paths": ["/Users/tkallio/dev/trustmary"]
+        },
+        {
+          "paths": ["/Users/tkallio/wp/trustmary/wp-content/themes/trustmary"]
+        }
+      ]
+    }
+  ],
+  "icon_theme": "Catppuccin Mocha",
+  "show_edit_predictions": false,
+  "agent": {
+    "always_allow_tool_actions": true,
+    "default_profile": "planning",
+    "profiles": {
+      "planning": {
+        "name": "Planning",
+        "tools": {
+          "thinking": true,
+          "read_file": true,
+          "open": true,
+          "project_notifications": true,
+          "list_directory": true,
+          "grep": true,
+          "find_path": true,
+          "fetch": true,
+          "diagnostics": true,
+          "copy_path": true
+        },
+        "enable_all_context_servers": false,
+        "context_servers": {}
+      }
+    },
+    "default_model": {
+      "provider": "openai",
+      "model": "gpt-5"
+    }
+  },
+  "ui_font_size": 14,
+  "buffer_font_size": 13,
+  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  "terminal": {
+    "line_height": "standard",
+    "font_size": 12
+  },
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "Catppuccin Mocha"
+  }
+}

@@ -23,6 +23,10 @@
   "icon_theme": "Catppuccin Mocha",
   "show_edit_predictions": false,
   "agent": {
+    "inline_assistant_model": {
+      "provider": "zed.dev",
+      "model": "claude-sonnet-4"
+    },
     "always_allow_tool_actions": true,
     "default_profile": "planning",
     "profiles": {

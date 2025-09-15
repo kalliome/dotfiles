@@ -12,6 +12,12 @@
       "host": "mini",
       "projects": [
         {
+          "paths": ["/Users/tkallio"]
+        },
+        {
+          "paths": ["/Users/tkallio/dev/clevenio-core"]
+        },
+        {
           "paths": ["/Users/tkallio/dev/trustmary"]
         },
         {

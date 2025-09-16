@@ -16,12 +16,12 @@ $ARGUMENTS
 1. **Check for Plan ID in Arguments:**
    If a specific plan ID is provided in the arguments, attach directly to that plan:
    ```bash
-   claude-memory session set-active --project-path "$(pwd)" --session-id "${CLAUDE_SESSION_ID}" --plan-id "[plan-id-from-arguments]"
+   claude-memory session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --plan-id "[plan-id-from-arguments]"
    ```
 
    Confirm the attachment and display the plan details:
    ```bash
-   claude-memory plan get --project-path "$(pwd)" --plan-id "[plan-id-from-arguments]"
+   claude-memory plan get --plan-id "[plan-id-from-arguments]"
    ```
 
 2. **List Available Plans (if no plan ID provided):**
@@ -36,7 +36,7 @@ $ARGUMENTS
    - Suggest creating a new plan using the `/plan` command
    - Offer to attach to the project without a specific plan:
    ```bash
-   claude-memory session set-active --project-path "$(pwd)" --session-id "${CLAUDE_SESSION_ID}" --project-path "$(pwd)"
+   claude-memory session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID"
    ```
 
 4. **Display Plan Options:**

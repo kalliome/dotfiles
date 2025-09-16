@@ -9,23 +9,27 @@ model: claude-opus-4-1-20250805
 Display information about the current session's plan and tasks, or answer specific questions about them.
 
 ## User's Request
+
 $ARGUMENTS
 
 ## Instructions
 
 1. **Check for Active Session Plan:**
    First, check if there's an active plan for this session:
+
    ```bash
-   claude-memory session get-active --session-id "${CLAUDE_SESSION_ID}"
+   claude-memory session get-active --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
    ```
 
    If no active session is found, try to get any plan for this session:
+
    ```bash
-   claude-memory plan get --project-path "$(pwd)" --session-id "${CLAUDE_SESSION_ID}"
+   claude-memory plan get --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
    ```
 
 2. **Handle No Plan Found:**
    If no plan exists for this session:
+
    - Inform the user that no plan is currently associated with this session
    - Suggest using `/plan` to create a new plan
    - Suggest using `/plan-attach` to attach to an existing plan
@@ -33,6 +37,7 @@ $ARGUMENTS
 
 3. **Display Plan Information:**
    If a plan is found, provide:
+
    - **Plan Overview:** Brief summary of what the plan aims to accomplish
    - **Current Status:** Whether it's active, how many tasks exist
    - **Key Components:** Main areas or files that will be modified
@@ -40,17 +45,20 @@ $ARGUMENTS
 
 4. **Check for Tasks:**
    If a plan exists, also check for associated tasks:
+
    ```bash
-   claude-memory tasks list --project-path "$(pwd)" --session-id "${CLAUDE_SESSION_ID}"
+   claude-memory tasks list --session-id "$CLAUDE_SESSION_ID"
    ```
 
    Display task summary:
+
    - Total number of tasks
    - Completed vs pending tasks
    - Current or next task to work on
 
 5. **Handle User Questions:**
    If arguments are provided (user asked a specific question):
+
    - Analyze the question in context of the found plan and tasks
    - Provide specific answers based on the plan content
    - Reference specific tasks or plan sections when relevant
@@ -59,6 +67,7 @@ $ARGUMENTS
 6. **Response Format:**
 
    **When no arguments provided (general info):**
+
    ```
    📋 Current Session Plan: [Plan Title/ID]
 
@@ -74,6 +83,7 @@ $ARGUMENTS
    ```
 
    **When specific question asked:**
+
    ```
    Question: [User's question]
 

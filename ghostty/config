@@ -1,13 +1,9 @@
-theme = dracula
+keybind = shift+enter=text:\x1b\r
+font-family = "JetBrainsMono Nerd Font Mono"
 
-keybind = global:alt+tab=toggle_quick_terminal
+# Catppuccin Mocha theme
+theme = "catppuccin-mocha.conf"
 
-# Send ESC+p when Option+p is pressed
-# keybind = alt+p>send_string:"\x1bp"
-
-shell-integration = zsh
-macos-titlebar-style = tabs
-# Auto-update Ghostty when a new release is available.
-auto-update = download
-# gpg pinentry freaks out if $TERM is not set
-term = xterm-256color
+# Terminal padding
+window-padding-x = 16
+window-padding-y = 16

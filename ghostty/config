@@ -1,4 +1,5 @@
 keybind = shift+enter=text:\x1b\r
+keybind = alt+tab=toggle_visibility
 font-family = "JetBrainsMono Nerd Font Mono"
 
 # Catppuccin Mocha theme
@@ -10,6 +11,13 @@ window-padding-y = 16
 
 shell-integration = zsh
 macos-titlebar-style = tabs
+
+# Disable opacity on unfocused splits
+unfocused-split-opacity = 1.0
+
+# Background transparency and blur
+background-opacity = 0.85
+background-blur-radius = 20
 # Auto-update Ghostty when a new release is available.
 auto-update = download
 # gpg pinentry freaks out if $TERM is not set

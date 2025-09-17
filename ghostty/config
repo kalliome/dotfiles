@@ -7,3 +7,10 @@ theme = "catppuccin-mocha.conf"
 # Terminal padding
 window-padding-x = 16
 window-padding-y = 16
+
+shell-integration = zsh
+macos-titlebar-style = tabs
+# Auto-update Ghostty when a new release is available.
+auto-update = download
+# gpg pinentry freaks out if $TERM is not set
+term = xterm-256color

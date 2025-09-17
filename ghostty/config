@@ -16,7 +16,7 @@ macos-titlebar-style = tabs
 unfocused-split-opacity = 1.0
 
 # Background transparency and blur
-background-opacity = 0.85
+background-opacity = 0.9
 background-blur-radius = 20
 # Auto-update Ghostty when a new release is available.
 auto-update = download

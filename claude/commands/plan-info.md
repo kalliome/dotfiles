@@ -1,6 +1,6 @@
 ---
 description: Display current session plan information and answer questions about the plan and tasks
-allowed-tools: Bash(claude-memory:*), Read
+allowed-tools: Bash(cc-plan:*), Read
 model: claude-opus-4-1-20250805
 ---
 
@@ -18,13 +18,13 @@ $ARGUMENTS
    First, check if there's an active plan for this session:
 
    ```bash
-   claude-memory session get-active --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
+   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
    ```
 
    If no active session is found, try to get any plan for this session:
 
    ```bash
-   claude-memory plan get --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
+   cc-plan plan get --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
    ```
 
 2. **Handle No Plan Found:**
@@ -47,7 +47,7 @@ $ARGUMENTS
    If a plan exists, also check for associated tasks:
 
    ```bash
-   claude-memory tasks list --session-id "$CLAUDE_SESSION_ID"
+   cc-plan tasks list --session-id "$CLAUDE_SESSION_ID"
    ```
 
    Display task summary:
@@ -97,7 +97,7 @@ $ARGUMENTS
    ```
 
 7. **Error Handling:**
-   - If claude-memory commands fail, inform user of the issue
+   - If cc-plan commands fail, inform user of the issue
    - If plan data is corrupted or unreadable, suggest creating a new plan
    - If session ID is not available, inform user of the limitation
 

@@ -1,10 +1,10 @@
 ---
-description: Plan and analyze prompts by generating detailed implementation plans and saving them with claude-memory
-allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(claude-memory:*)
+description: Plan and analyze prompts by generating detailed implementation plans and saving them with cc-plan
+allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(cc-plan:*)
 model: claude-opus-4-1-20250805
 ---
 
-# Planning Mode: Pohdi Command
+# Planning Mode: Plan Command
 
 You are in planning mode. Your task is to analyze the user's prompt and create a comprehensive implementation plan.
 
@@ -18,12 +18,12 @@ $ARGUMENTS
 1. **Check for Existing Plan:**
    First, check if there's an active plan for this session:
    ```bash
-   claude-memory session get-active --session-id "$CLAUDE_SESSION_ID"
+   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID"
    ```
 
    If an active plan exists, load it:
    ```bash
-   claude-memory plan get --session-id "$CLAUDE_SESSION_ID"
+   cc-plan plan get --session-id "$CLAUDE_SESSION_ID"
    ```
 
    If a plan exists, display it to the user and ask if they want to:
@@ -100,7 +100,7 @@ $ARGUMENTS
    - Include extensive technical considerations
 
 6. **Generate/Update Plan:**
-   - If updating an existing plan from claude-memory, incorporate the previous content
+   - If updating an existing plan from cc-plan, incorporate the previous content
    - Generate an implementation plan with detail level appropriate to task size
    - **Focus on Task Relationships:** For each task identified, clearly define:
      * **What:** Exact changes needed (be specific about code, files, functions)
@@ -312,16 +312,16 @@ $ARGUMENTS
    ```
 
 8. **Final Actions:**
-   Save the plan to claude-memory with task size indication:
+   Save the plan to cc-plan with task size indication:
 
    For new plans:
    ```bash
-   claude-memory plan create --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --content "[plan content]"
+   cc-plan plan create --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --content "[plan content]"
    ```
 
    For updating existing plans:
    ```bash
-   claude-memory plan update --session-id "$CLAUDE_SESSION_ID" --content "[updated plan content]"
+   cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "[updated plan content]"
    ```
 
    - Display the generated plan ID and task size assessment (e.g., "authentication-system (Large Task)" or "bug-fix-user-login (Small Task)")

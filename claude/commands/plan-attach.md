@@ -1,12 +1,12 @@
 ---
-description: Attach current Claude Code session to a claude-memory plan for coordinated project work
-allowed-tools: Bash(claude-memory:*), Bash(pwd:*)
+description: Attach current Claude Code session to a cc-plan plan for coordinated project work
+allowed-tools: Bash(cc-plan:*), Bash(pwd:*)
 model: claude-opus-4-1-20250805
 ---
 
 # Plan Attach Command
 
-Attach your current Claude Code session to an existing plan in claude-memory for coordinated project work.
+Attach your current Claude Code session to an existing plan in cc-plan for coordinated project work.
 
 ## User's Request
 $ARGUMENTS
@@ -16,18 +16,18 @@ $ARGUMENTS
 1. **Check for Plan ID in Arguments:**
    If a specific plan ID is provided in the arguments, attach directly to that plan:
    ```bash
-   claude-memory session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --plan-id "[plan-id-from-arguments]"
+   cc-plan session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --plan-id "[plan-id-from-arguments]"
    ```
 
    Confirm the attachment and display the plan details:
    ```bash
-   claude-memory plan get --plan-id "[plan-id-from-arguments]"
+   cc-plan plan get --plan-id "[plan-id-from-arguments]"
    ```
 
 2. **List Available Plans (if no plan ID provided):**
    If no plan ID is specified, show available plans for the current project:
    ```bash
-   claude-memory plan list --project-path "$(pwd)"
+   cc-plan plan list --project-path "$(pwd)"
    ```
 
 3. **Handle No Plans Found:**
@@ -36,7 +36,7 @@ $ARGUMENTS
    - Suggest creating a new plan using the `/plan` command
    - Offer to attach to the project without a specific plan:
    ```bash
-   claude-memory session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID"
+   cc-plan session set-active --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID"
    ```
 
 4. **Display Plan Options:**

@@ -22,3 +22,7 @@ background-blur-radius = 20
 auto-update = download
 # gpg pinentry freaks out if $TERM is not set
 term = xterm-256color
+
+macos-option-as-alt = left
+keybind = alt+left=unbind
+keybind = alt+right=unbind

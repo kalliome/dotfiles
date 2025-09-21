@@ -1,152 +1,205 @@
 ---
-description: Execute tasks from plans, review implementations, and guide applying diffs to codebase
-allowed-tools: Bash(claude-memory:*), Read
+description: Orchestrate task-by-task execution of cc-plan plans using specialized agents
+allowed-tools: Bash(cc-plan:*), Task
 model: claude-opus-4-1-20250805
 ---
 
-# Task Execution Command
+# Plan Execution Orchestrator
 
-Execute implementation tasks generated from plans, review their diffs, and provide guidance on applying changes to your codebase.
+Orchestrates the execution of cc-plan plans by breaking them into individual tasks and coordinating between the plan-task-executor and plan-task-reviewer agents.
 
 ## User's Request
 $ARGUMENTS
 
 ## Instructions
 
-1. **Check for Active Session Plan:**
-   First, check if there's an active plan for this session:
+1. **Load and Parse the Plan:**
+   First, retrieve the current plan and understand its structure:
    ```bash
-   claude-memory session get-active --session-id "$CLAUDE_SESSION_ID"
+   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID"
    ```
 
-2. **List Available Tasks:**
-   Show what tasks are available:
-   ```bash
-   claude-memory tasks list --session-id "$CLAUDE_SESSION_ID"
+2. **Plan Analysis:**
+   - Parse the plan content to identify individual tasks
+   - Determine current state of each task (pending, in-progress, completed)
+   - Identify task dependencies and execution order
+   - Create task execution queue
+
+3. **Task Execution Loop:**
+   For each task in the execution queue:
+
+   **a) Task Execution Phase:**
+   - Launch the plan-task-executor agent with the specific task
+   - Provide clear task description and requirements
+   - Wait for implementation completion
+
+   **b) Review Phase:**
+   - Launch the plan-task-reviewer agent to review the implementation
+   - Provide task context and implementation details
+   - Assess review verdict (OK or NEEDS IMPROVEMENT)
+
+   **c) Improvement Loop (if needed):**
+   - If reviewer finds issues, relay feedback to plan-task-executor
+   - Continue executor → reviewer cycles until review passes
+   - Ensure all quality standards are met
+
+   **d) Task Completion:**
+   - Mark task as completed in cc-plan plan
+   - Update task status and progress
+   - Move to next task in queue
+
+4. **Workflow Coordination:**
+
+   **Task Execution:**
+   ```
+   => Executing Task [N/Total]: [Task Title]
+   
+   Task Description:
+   [detailed task requirements]
+   
+   Dependencies: [list of prerequisite tasks]
+   
+   Launching plan-task-executor...
    ```
 
-3. **Handle User Request:**
-   Based on the arguments provided:
-
-   **If no arguments (general help):**
-   - Show available tasks
-   - Explain the execution workflow
-   - Provide next steps
-
-   **If task ID provided:**
-   - Execute the specific task
-   - Show the implementation
-   - Guide through verification process
-
-   **If "next" argument:**
-   - Find the next pending task
-   - Execute it automatically
-   - Show results for review
-
-4. **Task Execution Process:**
-
-   **Execute Task:**
-   ```bash
-   claude-memory tasks execute --session-id "$CLAUDE_SESSION_ID" --task-id "[task-id]"
+   **Review Process:**
+   ```
+   => Reviewing Implementation for Task [N]: [Task Title]
+   
+   Implementation Summary:
+   [what was implemented]
+   
+   Launching plan-task-reviewer...
    ```
 
-   **Verify Implementation:**
-   ```bash
-   claude-memory tasks verify --session-id "$CLAUDE_SESSION_ID" --task-id "[task-id]"
+   **Review Results:**
+   ```
+   Review Verdict: [OK | NEEDS IMPROVEMENT]
+   
+   [If OK]
+   ✅ Task [N] completed successfully
+   Moving to next task...
+   
+   [If NEEDS IMPROVEMENT]
+   ⚠️  Issues found, requesting fixes:
+   [list of issues]
+   
+   Re-launching plan-task-executor with feedback...
    ```
 
-   **If implementation looks good:**
-   ```bash
-   claude-memory tasks verify --session-id "$CLAUDE_SESSION_ID" --task-id "[task-id]" --approve
+5. **Error Handling:**
+
+   **Missing Plan:**
+   - Show helpful error message
+   - Suggest creating a plan with `/plan` command
+   - Provide plan creation guidance
+
+   **Task Execution Failures:**
+   - Log specific error details
+   - Attempt recovery strategies
+   - Escalate to user if unrecoverable
+
+   **Review Failures:**
+   - Handle reviewer agent errors gracefully
+   - Fall back to basic quality checks
+   - Continue with next task if possible
+
+6. **Progress Tracking:**
+
+   **Real-time Status:**
+   ```
+   🔄 Plan Execution Progress
+   
+   Plan: [Plan Title]
+   Progress: [X/Y] tasks completed
+   
+   ✅ Task 1: [Title] - Completed
+   ✅ Task 2: [Title] - Completed  
+   🔄 Task 3: [Title] - In Progress
+   ⏳ Task 4: [Title] - Pending
+   ⏳ Task 5: [Title] - Pending
+   
+   Current Status: [detailed status of current task]
    ```
 
-5. **Provide Diff Application Guide:**
-
-   For each executed task, provide specific instructions on how to apply the diff:
-
-   **For New Files:**
-   - Show how to create directory structure
-   - Provide the exact file content to create
-   - Give command-line examples
-
-   **For Existing Files:**
-   - Show which lines to remove (marked with -)
-   - Show which lines to add (marked with +)
-   - Provide git patch application method if applicable
-
-6. **Error Handling:**
-
-   If task execution fails:
-   - Show the error message
-   - Suggest refinement with specific feedback
-   - Provide troubleshooting steps
-
-   If no tasks exist:
-   - Suggest using `/create-tasks` to generate tasks from plan
-   - Explain the task generation process
-
-7. **Response Format:**
-
-   **When showing execution results:**
+   **Final Summary:**
    ```
-   => Executing Task: [Task Name]
-
-   File: [target-file-path]
-   Status: [execution-result]
-
-   => Implementation Preview:
-   [key changes summary]
-
-   =› Next Steps:
-   1. Review the implementation with: claude-memory tasks verify --task-id [id]
-   2. If good, apply the diff manually (instructions below)
-   3. Approve with: claude-memory tasks verify --task-id [id] --approve
-
-   > How to Apply This Diff:
-   [specific instructions for this file/change]
+   🎉 Plan Execution Complete!
+   
+   Plan: [Plan Title]
+   Total Tasks: [N]
+   Completed: [N]
+   Duration: [time taken]
+   
+   Implementation Summary:
+   - [key achievement 1]
+   - [key achievement 2]
+   - [key achievement 3]
+   
+   Files Modified/Created:
+   - [file-path-1]: [description]
+   - [file-path-2]: [description]
+   
+   Next Steps:
+   1. Run tests to verify functionality
+   2. Perform integration testing
+   3. Review changes and commit
    ```
 
-   **When providing diff application guide:**
+7. **Agent Communication Protocol:**
+
+   **To plan-task-executor:**
    ```
-   =¡ File: [file-path]
+   Execute the following task from the cc-plan plan:
 
-   [Action]: Create new file / Modify existing file
-
-   Manual Steps:
-   1. [step 1]
-   2. [step 2]
-   3. [step 3]
-
-   Command Line:
-   ```bash
-   [exact commands to run]
-   ```
-
-   Verification:
-   - Test the change works
-   - Run linting if applicable
-   - Commit the change
+   Task ID: [task-id]
+   Task Title: [title]
+   Task Description: [detailed description]
+   Acceptance Criteria: [criteria]
+   Dependencies: [prerequisite tasks]
+   
+   [If revision cycle]
+   Previous Implementation Issues:
+   [reviewer feedback with specific fixes needed]
+   
+   Please implement this task following all project standards.
    ```
 
-8. **Best Practices Guidance:**
-   Always include advice on:
-   - Reviewing implementations carefully
-   - Testing changes before approving
-   - Using version control
-   - Understanding the impact of changes
+   **To plan-task-reviewer:**
+   ```
+   Review the following task implementation:
 
-## Usage Examples
+   Task: [title and description]
+   
+   Implementation Details:
+   [what was implemented by the executor]
+   
+   Files Changed:
+   [list of modified/created files]
+   
+   Please provide a thorough quality review following your standards.
+   ```
 
-**Execute next pending task:**
-`/tasks-execute next`
+8. **Usage Examples:**
 
-**Execute specific task:**
-`/tasks-execute [task-id]`
+   **Execute entire plan:**
+   `/plan-execute`
 
-**Show execution help:**
-`/tasks-execute`
+   **Execute from specific task:**
+   `/plan-execute from-task-5`
 
-**Get task execution status:**
-`/tasks-execute status`
+   **Resume execution:**
+   `/plan-execute resume`
 
-Remember: Always respond in English and provide clear, actionable instructions for applying diffs to the codebase.
+   **Show execution status:**
+   `/plan-execute status`
+
+## Key Features
+
+- **Automated Task Management:** Handles task sequencing and dependencies
+- **Quality Assurance:** Ensures every task meets standards before proceeding  
+- **Progress Visibility:** Real-time status updates and progress tracking
+- **Error Recovery:** Graceful handling of failures with recovery strategies
+- **Iterative Improvement:** Automatic revision cycles until quality standards are met
+
+Remember: Always respond in English and coordinate agents effectively to deliver high-quality implementations.

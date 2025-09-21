@@ -1,6 +1,6 @@
 ---
 description: Generate tasks from a plan using Claude Code to automatically break down implementation into actionable tasks
-allowed-tools: Bash(claude-memory:*), Read
+allowed-tools: Bash(cc-plan:*), Read
 model: claude-opus-4-1-20250805
 ---
 
@@ -13,7 +13,7 @@ $ARGUMENTS
 
 ## How Task Generation Works
 
-The claude-memory system uses Claude Code to automatically generate tasks from plans. This process:
+The cc-plan system uses Claude Code to automatically generate tasks from plans. This process:
 1. **Analyzes the plan content** using sophisticated prompts
 2. **Extracts actionable implementation tasks** focusing on specific files and commands
 3. **Generates actual code diffs** for each task showing the implementation
@@ -24,34 +24,34 @@ The claude-memory system uses Claude Code to automatically generate tasks from p
 1. **Find the Plan:**
    Get the plan that needs task generation. If no plan ID is provided, use the session's active plan:
    ```bash
-   claude-memory plan get --plan-id "[plan-id]"
+   cc-plan plan get --plan-id "[plan-id]"
    ```
 
    Or for current session:
    ```bash
-   claude-memory session get-active --session-id "$CLAUDE_SESSION_ID"
+   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID"
    ```
 
 2. **Check for Existing Tasks:**
    Check if tasks already exist for this plan:
    ```bash
-   claude-memory tasks list --plan-id "[plan-id]"
+   cc-plan tasks list --plan-id "[plan-id]"
    ```
 
    Or for session:
    ```bash
-   claude-memory tasks list --session-id "$CLAUDE_SESSION_ID"
+   cc-plan tasks list --session-id "$CLAUDE_SESSION_ID"
    ```
 
 3. **Generate Tasks:**
    Use Claude Code to automatically generate tasks from the plan:
    ```bash
-   claude-memory tasks generate --plan-id "[plan-id]"
+   cc-plan tasks generate --plan-id "[plan-id]"
    ```
 
    Or for session:
    ```bash
-   claude-memory tasks generate --session-id "$CLAUDE_SESSION_ID"
+   cc-plan tasks generate --session-id "$CLAUDE_SESSION_ID"
    ```
 
 ## What the Generation Process Does
@@ -91,27 +91,27 @@ Tasks are stored as markdown files in `~/.claude-plans/[project]/[plan-id]/tasks
 
 ### View Tasks
 ```bash
-claude-memory tasks list --plan-id "[plan-id]"
+cc-plan tasks list --plan-id "[plan-id]"
 ```
 
 ### Execute a Task
 ```bash
-claude-memory tasks execute --plan-id "[plan-id]" --task-id "[task-id]"
+cc-plan tasks execute --plan-id "[plan-id]" --task-id "[task-id]"
 ```
 
 ### Verify Implementation
 ```bash
-claude-memory tasks verify --plan-id "[plan-id]" --task-id "[task-id]"
+cc-plan tasks verify --plan-id "[plan-id]" --task-id "[task-id]"
 ```
 
 ### Approve Task
 ```bash
-claude-memory tasks verify --plan-id "[plan-id]" --task-id "[task-id]" --approve
+cc-plan tasks verify --plan-id "[plan-id]" --task-id "[task-id]" --approve
 ```
 
 ### Refine Task
 ```bash
-claude-memory tasks refine --plan-id "[plan-id]" --task-id "[task-id]" --feedback "Your feedback here"
+cc-plan tasks refine --plan-id "[plan-id]" --task-id "[task-id]" --feedback "Your feedback here"
 ```
 
 ## Example Generated Task

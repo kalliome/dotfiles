@@ -1,6 +1,6 @@
 ---
 description: Debug how slash commands work
-allowed-tools: Bash(claude-memory:*), Read
+allowed-tools: Bash(cc-plan:*), Read
 model: claude-opus-4-1-20250805
 ---
 

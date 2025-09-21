@@ -138,10 +138,15 @@ $ARGUMENTS
    2. [Testing/verification - specify what to test and why]
 
    ## Tasks
-   1. [Task Name]
-      What: [Specific changes/implementation needed]
-      Why: [Business/technical reasoning]
-      File: [Target file path]
+   <Tasks>
+     <Task id="1" status="pending">
+       <Title>[Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+     </Task>
+   </Tasks>
    ```
 
    **For Medium Tasks:**
@@ -182,17 +187,25 @@ $ARGUMENTS
    - [Integration testing approach]
 
    ## Tasks
-   1. [Task Name]
-      What: [Specific changes/implementation needed]
-      Why: [Business/technical reasoning]
-      File: [Target file path]
-      Dependencies: [Task numbers this depends on, if any]
+   <Tasks>
+     <Task id="1" status="pending">
+       <Title>[Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+       <Dependencies></Dependencies>
+     </Task>
 
-   2. [Next Task Name]
-      What: [Specific changes/implementation needed]
-      Why: [Business/technical reasoning]
-      File: [Target file path]
-      Dependencies: [Task numbers this depends on]
+     <Task id="2" status="pending">
+       <Title>[Next Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+       <Dependencies>1</Dependencies>
+     </Task>
+   </Tasks>
    ```
 
    **For Large Tasks:**
@@ -276,39 +289,88 @@ $ARGUMENTS
    - [Integration testing strategy]
 
    ## Tasks
-   1. [Task Name]
-      What: [Specific changes/implementation needed]
-      Why: [Business/technical reasoning]
-      File: [Target file path]
-      Dependencies: [Task numbers this depends on, if any]
+   <Tasks>
+     <Task id="1" status="pending">
+       <Title>[Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+       <Dependencies></Dependencies>
+     </Task>
 
-   2. [Next Task Name]
-      What: [Specific changes/implementation needed]
-      Why: [Business/technical reasoning]
-      File: [Target file path]
-      Dependencies: [Task numbers this depends on]
+     <Task id="2" status="pending">
+       <Title>[Next Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+       <Dependencies>1</Dependencies>
+     </Task>
 
-   3. [Additional tasks following the same pattern...]
+     <Task id="3" status="pending">
+       <Title>[Additional Task]</Title>
+       <What>[Follow the same pattern for additional tasks]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>file-modification</Type>
+       <Dependencies>1,2</Dependencies>
+     </Task>
+   </Tasks>
    ```
 
    ## Tasks Output Format
 
-   End your plan with a clean task summary using this format:
+   End your plan with a clean task summary using this XML format for machine readability:
 
-   ```
-   Tasks:
-      1. [Task Name]
-         What: [Specific changes/implementation needed]
-         Why: [Business/technical reasoning]
-         File: [Target file path]
-         Dependencies: [Task numbers this depends on, if any]
+   ```xml
+   <Tasks>
+     <Task id="1" status="pending">
+       <Title>[Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>[file-creation|file-modification|command]</Type>
+       <Dependencies>[comma,separated,task,ids or empty]</Dependencies>
+     </Task>
 
-      2. [Next Task Name]
-         What: [Specific changes/implementation needed]
-         Why: [Business/technical reasoning]
-         File: [Target file path]
-         Dependencies: [Task numbers this depends on]
+     <Task id="2" status="pending">
+       <Title>[Next Task Name]</Title>
+       <What>[Specific changes/implementation needed]</What>
+       <Why>[Business/technical reasoning]</Why>
+       <File>[Target file path]</File>
+       <Type>[file-creation|file-modification|command]</Type>
+       <Dependencies>[task,ids,this,depends,on]</Dependencies>
+     </Task>
+   </Tasks>
    ```
+
+   ### XML Task Schema
+
+   **Required Fields:**
+   - `<Title>` - Brief task description
+   - `<What>` - Detailed implementation requirements
+   - `<Why>` - Business/technical reasoning
+
+   **Optional Fields:**
+   - `<File>` - Target file path (required for file operations)
+   - `<Command>` - Shell command (required for command tasks)
+   - `<Type>` - Task type: file-creation, file-modification, command
+   - `<Dependencies>` - Comma-separated task IDs this depends on
+   - `<Diff>` - Expected code changes wrapped in CDATA
+   - `<Impacts>` - Other components affected
+   - `<TestStrategy>` - How to verify completion
+
+   **Attributes:**
+   - `id` - Unique task identifier (required)
+   - `status` - Task status: pending, in-progress, completed (default: pending)
+
+   **For code changes, use CDATA sections:**
+   ```xml
+   <Diff><![CDATA[
+   + new code here
+   - old code here
+   ]]></Diff>
    ```
 
 8. **Final Actions:**

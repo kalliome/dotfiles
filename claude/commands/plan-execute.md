@@ -20,10 +20,11 @@ $ARGUMENTS
    ```
 
 2. **Plan Analysis:**
-   - Parse the plan content to identify individual tasks
-   - Determine current state of each task (pending, in-progress, completed)
-   - Identify task dependencies and execution order
-   - Create task execution queue
+   - Parse the plan content to extract XML `<Tasks>` section
+   - Parse individual `<Task>` elements with their XML attributes and fields
+   - Extract task IDs, titles, dependencies, and current status from XML
+   - Build dependency graph from `<Dependencies>` fields
+   - Create task execution queue respecting dependency order
 
 3. **Task Execution Loop:**
    For each task in the execution queue:
@@ -152,16 +153,18 @@ $ARGUMENTS
    ```
    Execute the following task from the cc-plan plan:
 
-   Task ID: [task-id]
-   Task Title: [title]
-   Task Description: [detailed description]
-   Acceptance Criteria: [criteria]
-   Dependencies: [prerequisite tasks]
-   
+   Task ID: [task-id from XML id attribute]
+   Task Title: [title from <Title> element]
+   Task Description: [content from <What> element]
+   File Target: [path from <File> element]
+   Task Type: [type from <Type> element - file-creation, file-modification, command]
+   Reasoning: [content from <Why> element]
+   Dependencies: [comma-separated IDs from <Dependencies> element]
+
    [If revision cycle]
    Previous Implementation Issues:
    [reviewer feedback with specific fixes needed]
-   
+
    Please implement this task following all project standards.
    ```
 
@@ -169,14 +172,19 @@ $ARGUMENTS
    ```
    Review the following task implementation:
 
-   Task: [title and description]
-   
+   Task ID: [task-id from XML]
+   Task Title: [title from <Title> element]
+   Expected What: [content from <What> element]
+   Expected Why: [content from <Why> element]
+   Target File: [path from <File> element]
+   Task Type: [type from <Type> element]
+
    Implementation Details:
    [what was implemented by the executor]
-   
+
    Files Changed:
    [list of modified/created files]
-   
+
    Please provide a thorough quality review following your standards.
    ```
 

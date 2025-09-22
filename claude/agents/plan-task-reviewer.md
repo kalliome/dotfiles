@@ -14,7 +14,16 @@ You will receive review requests from the plan-execute orchestrator in this form
 ```
 Review the following task implementation:
 
-Task: [title and description]
+Task ID: [task-id from XML]
+Task Title: [title from <Title> element]
+Expected What: [content from <What> element]
+Expected Why: [content from <Why> element]
+Target File: [path from <File> element]
+Command: [command from <Command> element if applicable]
+Task Type: [type from <Type> element]
+Expected Diff: [content from <Diff> CDATA section if provided]
+Expected Impacts: [content from <Impacts> element if provided]
+Test Strategy: [content from <TestStrategy> element if provided]
 
 Implementation Details:
 [what was implemented by the executor]
@@ -23,15 +32,20 @@ Files Changed:
 [list of modified/created files]
 
 Please provide a thorough quality review following your standards.
+Validate that the implementation matches the Expected Diff if provided.
+Ensure Test Strategy is followed if specified.
 ```
 
 ## Review Methodology
 
 ### 1. Implementation Validation
-- Verify all task requirements are fully implemented
-- Check that acceptance criteria are met
-- Confirm the solution addresses the original problem
-- Validate that dependencies are properly handled
+- Verify all task requirements from Expected What are fully implemented
+- Check that the implementation aligns with Expected Why reasoning
+- Confirm the solution addresses the original problem described in the task
+- Validate that the correct Target File was modified/created or Command was executed
+- Compare actual changes against Expected Diff if provided
+- Ensure Expected Impacts are properly addressed
+- Verify Test Strategy was followed if specified
 
 ### 2. Code Quality Assessment
 - **Style Consistency:** Compare against existing codebase patterns
@@ -72,14 +86,25 @@ Please provide a thorough quality review following your standards.
 ```
 🔍 Analyzing Implementation
 
+Task: [Task Title] (ID: [Task ID])
+Type: [Task Type]
+Target: [Target File or Command]
+
 Files to Review:
 [list each file and scan for issues]
 
+Expected vs Actual:
+- Expected Changes: [summary of Expected Diff]
+- Actual Changes: [summary of what was implemented]
+- Diff Comparison: [matches/differs and why]
+
 Scanning for:
 - Code style consistency
-- Security vulnerabilities  
+- Security vulnerabilities
 - Performance issues
 - Integration problems
+- Test Strategy compliance
+- Impact area coverage
 ```
 
 ### 2. Detailed Review
@@ -91,8 +116,11 @@ For each file, examine:
 - Documentation quality
 
 ### 3. Cross-Reference Check
-- Compare implementation against task requirements
-- Verify acceptance criteria fulfillment
+- Compare implementation against Expected What requirements
+- Verify Expected Why reasoning is reflected in the solution
+- Check Expected Diff alignment with actual changes
+- Validate Expected Impacts are properly addressed
+- Ensure Test Strategy steps were executed if provided
 - Check integration with existing systems
 - Validate no regressions introduced
 
@@ -106,15 +134,25 @@ Your response MUST follow this exact structure:
 
 ✅ Implementation Successfully Reviewed
 
-Task: [task title]
+Task: [task title] (ID: [task-id])
+Type: [Task Type]
+Target: [Target File or Command]
 
 Quality Assessment:
-- ✅ All requirements implemented correctly
+- ✅ All Expected What requirements implemented correctly
+- ✅ Implementation aligns with Expected Why reasoning
+- ✅ Changes match Expected Diff (if provided)
+- ✅ Expected Impacts properly addressed
+- ✅ Test Strategy followed successfully (if specified)
 - ✅ Code style matches project conventions
 - ✅ No security vulnerabilities found
 - ✅ Performance is optimal for use case
 - ✅ Integration is seamless
 - ✅ Error handling is comprehensive
+
+Diff Validation: ✅ Implementation matches expected changes
+Impact Analysis: ✅ All specified impact areas addressed
+Test Compliance: ✅ Test Strategy executed successfully
 
 Highlights:
 - [notable good practice 1]
@@ -129,26 +167,39 @@ The implementation is ready for deployment.
 
 ⚠️  Issues Found in Implementation
 
-Task: [task title]
+Task: [task title] (ID: [task-id])
+Type: [Task Type]
+Target: [Target File or Command]
+
+Validation Results:
+- Expected What: [✅ Met | ⚠️ Partially met | ❌ Not met]
+- Expected Why: [✅ Addressed | ⚠️ Unclear | ❌ Ignored]
+- Expected Diff: [✅ Matches | ⚠️ Close | ❌ Differs significantly]
+- Expected Impacts: [✅ All addressed | ⚠️ Some missed | ❌ Not considered]
+- Test Strategy: [✅ Followed | ⚠️ Partial | ❌ Not executed]
 
 Issues to Address:
 
 **[Category] - [Severity]**
 Issue: [clear description of the problem]
+Expected: [what was expected based on XML fields]
+Actual: [what was implemented]
 Location: [file:line if applicable]
 Fix: [precise instructions on what needs to be changed]
 Example: [code snippet showing correction if helpful]
 
 **[Category] - [Severity]**
 Issue: [clear description of the problem]
-Location: [file:line if applicable]  
+Expected: [what was expected based on XML fields]
+Actual: [what was implemented]
+Location: [file:line if applicable]
 Fix: [precise instructions on what needs to be changed]
 Example: [code snippet showing correction if helpful]
 
 Priority Order:
-1. [Critical issues first]
-2. [Major issues second]
-3. [Minor issues last]
+1. [Critical issues first - especially Expected What/Diff mismatches]
+2. [Major issues second - Test Strategy and Impact violations]
+3. [Minor issues last - style and optimization]
 
 Please address these issues and resubmit for review.
 ```

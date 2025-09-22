@@ -20,16 +20,38 @@ $ARGUMENTS
    ```
 
 2. **Plan Analysis:**
-   - Parse the plan content to extract XML `<Tasks>` section
+   Use the XML task parser utility to extract and process tasks:
+   ```bash
+   # Get the plan content
+   plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+
+   # Parse all tasks using the utility
+   tasks_json=$(echo "$plan_content" | utils/parse-tasks.sh)
+
+   # Build dependency graph
+   dependency_graph=$(echo "$plan_content" | utils/parse-tasks.sh "" "graph")
+   ```
+   - Parse the plan content to extract XML `<Tasks>` section using parse-tasks.sh
    - Parse individual `<Task>` elements with their XML attributes and fields
    - Extract task IDs, titles, dependencies, and current status from XML
-   - Build dependency graph from `<Dependencies>` fields
+   - Build dependency graph from `<Dependencies>` fields using parser utility
    - Create task execution queue respecting dependency order
 
 3. **Task Execution Loop:**
    For each task in the execution queue:
 
    **a) Task Execution Phase:**
+   - Mark task as in_progress in the XML:
+     ```bash
+     # Get current plan content
+     plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+
+     # Update task status to in_progress
+     updated_plan=$(echo "$plan_content" | utils/parse-tasks.sh "" "$task_id" "update-status" "in_progress")
+
+     # Update the plan with new status
+     echo "$updated_plan" | cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "$(cat)"
+     ```
    - Launch the plan-task-executor agent with the specific task
    - Provide clear task description and requirements
    - Wait for implementation completion
@@ -45,8 +67,17 @@ $ARGUMENTS
    - Ensure all quality standards are met
 
    **d) Task Completion:**
-   - Mark task as completed in cc-plan plan
-   - Update task status and progress
+   - Mark task as completed in the XML using status update utility:
+     ```bash
+     # Get current plan content
+     plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+
+     # Update task status to completed
+     updated_plan=$(echo "$plan_content" | utils/parse-tasks.sh "" "$task_id" "update-status" "completed")
+
+     # Update the plan with new status
+     echo "$updated_plan" | cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "$(cat)"
+     ```
    - Move to next task in queue
 
 4. **Workflow Coordination:**
@@ -107,20 +138,27 @@ $ARGUMENTS
 
 6. **Progress Tracking:**
 
+   **Task Status Updates:**
+   Track progress by updating XML status attributes throughout execution:
+   - `pending` → `in_progress` when task execution begins
+   - `in_progress` → `completed` when task passes review
+   - Status remains `in_progress` during revision cycles
+
    **Real-time Status:**
    ```
    🔄 Plan Execution Progress
-   
+
    Plan: [Plan Title]
    Progress: [X/Y] tasks completed
-   
-   ✅ Task 1: [Title] - Completed
-   ✅ Task 2: [Title] - Completed  
-   🔄 Task 3: [Title] - In Progress
-   ⏳ Task 4: [Title] - Pending
-   ⏳ Task 5: [Title] - Pending
-   
+
+   ✅ Task 1: [Title] - Completed (status="completed")
+   ✅ Task 2: [Title] - Completed (status="completed")
+   🔄 Task 3: [Title] - In Progress (status="in_progress")
+   ⏳ Task 4: [Title] - Pending (status="pending")
+   ⏳ Task 5: [Title] - Pending (status="pending")
+
    Current Status: [detailed status of current task]
+   XML Status Sync: ✅ Task statuses updated in plan
    ```
 
    **Final Summary:**
@@ -157,9 +195,13 @@ $ARGUMENTS
    Task Title: [title from <Title> element]
    Task Description: [content from <What> element]
    File Target: [path from <File> element]
+   Command: [command from <Command> element if type is command]
    Task Type: [type from <Type> element - file-creation, file-modification, command]
    Reasoning: [content from <Why> element]
    Dependencies: [comma-separated IDs from <Dependencies> element]
+   Expected Diff: [content from <Diff> CDATA section if provided]
+   Impacts: [content from <Impacts> element if provided]
+   Test Strategy: [content from <TestStrategy> element if provided]
 
    [If revision cycle]
    Previous Implementation Issues:
@@ -177,7 +219,11 @@ $ARGUMENTS
    Expected What: [content from <What> element]
    Expected Why: [content from <Why> element]
    Target File: [path from <File> element]
+   Command: [command from <Command> element if applicable]
    Task Type: [type from <Type> element]
+   Expected Diff: [content from <Diff> CDATA section if provided]
+   Expected Impacts: [content from <Impacts> element if provided]
+   Test Strategy: [content from <TestStrategy> element if provided]
 
    Implementation Details:
    [what was implemented by the executor]
@@ -186,6 +232,8 @@ $ARGUMENTS
    [list of modified/created files]
 
    Please provide a thorough quality review following your standards.
+   Validate that the implementation matches the Expected Diff if provided.
+   Ensure Test Strategy is followed if specified.
    ```
 
 8. **Usage Examples:**

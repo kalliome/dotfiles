@@ -7,9 +7,7 @@
 DEBUG_LOG="/tmp/claude-ntfy-debug.log"
 
 # Configuration
-NTFY_URL="https://ntfy.teppo.dev/claude"
-NTFY_USERNAME="teppo"
-NTFY_PASSWORD="9GBmkKYEedbRiJv2Ajkv"
+NTFY_URL="https://ntfy.sh/4ebfd387-fc5e-4554-9b46-48d9aadedae6"
 
 # Read JSON input from stdin
 input=$(cat)
@@ -37,26 +35,19 @@ fi
 
 # Prepare notification content
 if [ -n "$message" ] && [ "$message" != "null" ]; then
-    notification_text="🤖 Claude Code ($timestamp)
-Session: ${session_id##*.}
-Message: $message"
+    notification_text="Session: ${session_id##*.}
+$message"
 else
-    notification_text="🤖 Claude Code needs your attention ($timestamp)
-Session: ${session_id##*.}"
+    notification_text="Session: ${session_id##*.}
+Claude code needs your attention"
 fi
 
 echo "Notification text: $notification_text" >> "$DEBUG_LOG"
 
 # Send notification via ntfy
 echo "Sending to: $NTFY_URL" >> "$DEBUG_LOG"
-echo "Username: $NTFY_USERNAME" >> "$DEBUG_LOG"
-
-# Test authentication first
-auth_test=$(curl -s -w "%{http_code}" -u "$NTFY_USERNAME:$NTFY_PASSWORD" "$NTFY_URL" -o /dev/null)
-echo "Auth test HTTP code: $auth_test" >> "$DEBUG_LOG"
 
 curl_response=$(curl -s -w "HTTP_CODE:%{http_code}" \
-    -u "$NTFY_USERNAME:$NTFY_PASSWORD" \
     -H "Title: Claude Code" \
     -H "Priority: default" \
     -H "Tags: robot,code" \

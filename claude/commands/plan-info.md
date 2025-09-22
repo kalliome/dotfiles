@@ -18,13 +18,13 @@ $ARGUMENTS
    First, check if there's an active plan for this session:
 
    ```bash
-   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
+   cc-plan session get-active --session-id "$CLAUDE_SESSION_ID"
    ```
 
    If no active session is found, try to get any plan for this session:
 
    ```bash
-   cc-plan plan get --session-id "$CLAUDE_SESSION_ID" --test "$CLAUDE_SESSION_ID"
+   cc-plan plan get --session-id "$CLAUDE_SESSION_ID"
    ```
 
 2. **Handle No Plan Found:**
@@ -43,25 +43,34 @@ $ARGUMENTS
    - **Key Components:** Main areas or files that will be modified
    - **Progress:** If tasks exist, show completion status
 
-4. **Check for Tasks:**
-   If a plan exists, also check for associated tasks:
+4. **Parse and Display Tasks:**
+   If a plan exists, parse the XML Tasks section using the utility:
 
    ```bash
-   cc-plan tasks list --session-id "$CLAUDE_SESSION_ID"
+   # Get the plan content
+   plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+
+   # Parse tasks using the XML parser utility
+   tasks_json=$(echo "$plan_content" | utils/parse-tasks.sh)
+
+   # Build dependency graph if needed
+   dependency_graph=$(echo "$plan_content" | utils/parse-tasks.sh "" "graph")
    ```
 
    Display task summary:
 
-   - Total number of tasks
-   - Completed vs pending tasks
-   - Current or next task to work on
+   - Total number of tasks from parsed XML
+   - Completed vs pending tasks by status attribute
+   - Current or next task to work on based on dependencies
+   - Task dependency relationships
 
 5. **Handle User Questions:**
    If arguments are provided (user asked a specific question):
 
-   - Analyze the question in context of the found plan and tasks
-   - Provide specific answers based on the plan content
-   - Reference specific tasks or plan sections when relevant
+   - Analyze the question in context of the found plan and parsed XML tasks
+   - Provide specific answers based on the plan content and parsed task data
+   - Reference specific tasks from XML with IDs, titles, dependencies when relevant
+   - Use parsed task data to answer questions about files, types, dependencies
    - If the question cannot be answered from the plan, say so clearly
 
 6. **Response Format:**
@@ -73,13 +82,22 @@ $ARGUMENTS
 
    Overview: [Brief description of what the plan accomplishes]
 
-   Status: [Active/Inactive] | Tasks: [X completed, Y pending]
+   Status: [Active/Inactive] | Tasks: [X completed, Y pending, Z in-progress]
+
+   Task Progress:
+   ✅ [Task ID]: [Task Title] (completed)
+   🔄 [Task ID]: [Task Title] (in-progress)
+   ⏳ [Task ID]: [Task Title] (pending)
+
+   Dependencies:
+   - Task [ID] depends on: [dep1, dep2]
+   - Task [ID] enables: [dependent1, dependent2]
 
    Key Areas:
-   - [Component/file 1]
-   - [Component/file 2]
+   - [Component/file 1 from <File> elements]
+   - [Component/file 2 from <File> elements]
 
-   Next Action: [What should be done next]
+   Next Action: [What should be done next based on dependency graph]
    ```
 
    **When specific question asked:**
@@ -87,12 +105,13 @@ $ARGUMENTS
    ```
    Question: [User's question]
 
-   Answer: [Specific answer based on plan and tasks]
+   Answer: [Specific answer based on plan and parsed XML tasks]
 
    Related Tasks:
-   - [Relevant task 1]
-   - [Relevant task 2]
+   - [Task ID]: [Task Title] - [What] ([File] - [Type])
+   - [Task ID]: [Task Title] - [What] ([File] - [Type])
 
+   Dependencies: [Show dependency chain if relevant]
    Plan Reference: [Relevant section of plan if applicable]
    ```
 

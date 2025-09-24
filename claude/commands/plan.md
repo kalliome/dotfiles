@@ -26,7 +26,18 @@ $ARGUMENTS
    cc-plan plan get --session-id "$CLAUDE_SESSION_ID"
    ```
 
-   If a plan exists, display it to the user and ask if they want to:
+   **Special Case - No Arguments with Active Plan Notes:**
+   If `/plan` is called without arguments AND an active plan exists with notes, automatically process those notes:
+   - Notes are formatted in a single `<Notes>` XML container with multiple `<Note>` tags inside at the end of the plan file
+   - Read the referenced files and line numbers mentioned in each note
+   - Analyze what changes are needed based on all the notes
+   - Make the necessary updates to the plan
+   - **Remove the entire `<Notes>` section after processing** - all notes are consumed during refinement
+   - If clarification is needed about any notes or changes, ask the user
+   - This allows for iterative plan refinement based on feedback or discoveries
+
+   **Standard Case - Plan Exists:**
+   If a plan exists (and no automatic note processing occurred), display it to the user and ask if they want to:
    - Update/refine the existing plan
    - Create a completely new plan
    - Continue with the existing plan
@@ -121,12 +132,38 @@ $ARGUMENTS
    ## Overview
    [Concise description of the change needed]
 
+   <MermaidChart>
+   [Include if dataflow adds value to understanding the implementation]
+   ```mermaid
+   graph TD
+       A[User Input] --> B[Validation]
+       B --> C[Process Data]
+       C --> D[Update State]
+       D --> E[Render UI]
+   ```
+   </MermaidChart>
+
    ## Implementation
    #### `path/to/file.ext`
    - **What:** [Specific changes needed - be explicit about what code/functionality changes]
    - **Why:** [Clear reasoning - business need, bug fix, performance improvement, etc.]
    - **Dependencies:** [Any prerequisites or files that must be modified first]
    - **Impacts:** [Other parts of code that may be affected by this change]
+
+   <Layout>
+   [ASCII mockup showing how this specific UI component/page will look after changes]
+   Before:                           After:
+   ┌─────────────────────────┐      ┌─────────────────────────┐
+   │ Header                  │      │ Header                  │
+   ├─────────────────────────┤      ├─────────────────────────┤
+   │ [Submit Button]         │  =>  │ [Submit] [New Button]   │
+   │                         │      │                         │
+   │ Form Content            │      │ Form Content            │
+   │                         │      │ ┌─────────────────────┐ │
+   │                         │      │ │ New Feature Panel   │ │
+   │                         │      │ └─────────────────────┘ │
+   └─────────────────────────┘      └─────────────────────────┘
+   </Layout>
 
    ## Task Relationships
    - **Prerequisites:** [Tasks that must be completed before this one]
@@ -156,6 +193,24 @@ $ARGUMENTS
    ## Overview
    [Moderate description of what needs to be accomplished]
 
+   <MermaidChart>
+   [Include when dataflow spans multiple components and adds clarity]
+   ```mermaid
+   sequenceDiagram
+       participant U as User
+       participant A as ComponentA
+       participant B as ComponentB
+       participant D as Database
+
+       U->>A: Request
+       A->>B: Process
+       B->>D: Query
+       D-->>B: Result
+       B-->>A: Response
+       A-->>U: UI Update
+   ```
+   </MermaidChart>
+
    ## Context Analysis
    - Relevant considerations from investigation
 
@@ -167,6 +222,25 @@ $ARGUMENTS
    - **Dependencies:** [Files/components that must be modified first]
    - **Impacts:** [Other files/components affected by this change]
    - **Implementation details:** [Key technical specifics and approach]
+
+   <Layout>
+   [ASCII mockup showing how this specific UI component/page will look after changes]
+   Current State:                    Updated State:
+   ┌─────────────────────────────┐   ┌─────────────────────────────┐
+   │ Component Header            │   │ Component Header            │
+   ├─────────────────────────────┤   ├─────────────────────────────┤
+   │ Existing Features           │   │ Existing Features           │
+   │ ┌─────────────────────────┐ │   │ ┌─────────────────────────┐ │
+   │ │ Feature A               │ │   │ │ Feature A (Enhanced)    │ │
+   │ └─────────────────────────┘ │   │ └─────────────────────────┘ │
+   │                             │   │ ┌─────────────────────────┐ │
+   │                             │ = │ │ Feature B (New)         │ │
+   │                             │ > │ └─────────────────────────┘ │
+   │                             │   │ ┌─────────────────────────┐ │
+   │                             │   │ │ Integration Panel       │ │
+   │                             │   │ └─────────────────────────┘ │
+   └─────────────────────────────┘   └─────────────────────────────┘
+   </Layout>
 
    ## Task Dependencies & Order
    ### Task Groups
@@ -215,6 +289,46 @@ $ARGUMENTS
    ## Overview
    [Comprehensive description of what needs to be accomplished]
 
+   <MermaidChart>
+   [Include complex dataflow diagrams for system-wide changes and integrations]
+   ```mermaid
+   graph TB
+       subgraph "Client Layer"
+           A[React Frontend]
+           B[Mobile App]
+       end
+
+       subgraph "API Layer"
+           C[API Gateway]
+           D[Auth Service]
+           E[User Service]
+           F[Analytics Service]
+       end
+
+       subgraph "Data Layer"
+           G[(Primary DB)]
+           H[(Analytics DB)]
+           I[Redis Cache]
+       end
+
+       subgraph "External"
+           J[OAuth Provider]
+           K[Email Service]
+       end
+
+       A --> C
+       B --> C
+       C --> D
+       C --> E
+       C --> F
+       D --> J
+       E --> G
+       E --> I
+       F --> H
+       E --> K
+   ```
+   </MermaidChart>
+
    ## Context Analysis
    - Relevant CLAUDE.md instructions
    - Current codebase structure
@@ -231,6 +345,26 @@ $ARGUMENTS
    - **Impacts:** [Downstream effects - what other components will be affected]
    - **Implementation details:** [Comprehensive technical specifics and approach]
    - **Testing strategy:** [How to verify this specific change works]
+
+   <Layout>
+   [ASCII mockup showing how this specific UI component/page/feature will look after changes]
+   BEFORE Implementation:              AFTER Implementation:
+   ┌───────────────────────────────┐   ┌───────────────────────────────┐
+   │ Current Component State       │   │ Enhanced Component State      │
+   ├───────────────────────────────┤   ├───────────────────────────────┤
+   │ ┌─────────────────────────┐   │   │ ┌─────────────────────────┐   │
+   │ │ Existing Feature        │   │   │ │ Existing Feature (Mod)  │   │
+   │ └─────────────────────────┘   │   │ └─────────────────────────┘   │
+   │                               │   │ ┌─────────────────────────┐   │
+   │ ┌─────────────────────────┐   │   │ │ New Feature A           │   │
+   │ │ Basic Layout            │   │ = │ │ [Enhanced Capabilities] │   │
+   │ └─────────────────────────┘   │ > │ └─────────────────────────┘   │
+   │                               │   │ ┌─────────────────────────┐   │
+   │ [Limited Functionality]       │   │ │ New Feature B           │   │
+   │                               │   │ │ [Advanced Options]      │   │
+   │                               │   │ └─────────────────────────┘   │
+   └───────────────────────────────┘   └───────────────────────────────┘
+   </Layout>
 
    ## Task Dependency Map & Implementation Order
 
@@ -394,3 +528,13 @@ $ARGUMENTS
    - Let them know they can retrieve this plan anytime using the session ID
 
 Remember: You are ONLY planning - never execute any changes to actual code files.
+
+## CRITICAL: Do NOT Start Implementation
+
+After completing the planning phase:
+- **DO NOT begin implementing any code changes**
+- **DO NOT start executing the plan automatically**
+- **DO NOT use tools like Edit, Write, or MultiEdit**
+- The planning phase is complete once the plan is saved to cc-plan
+- Implementation should only begin when the user explicitly requests it or uses plan execution commands
+- Your role in planning mode is purely analytical and organizational

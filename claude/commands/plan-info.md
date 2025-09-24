@@ -43,34 +43,34 @@ $ARGUMENTS
    - **Key Components:** Main areas or files that will be modified
    - **Progress:** If tasks exist, show completion status
 
-4. **Parse and Display Tasks:**
-   If a plan exists, parse the XML Tasks section using the utility:
+4. **List and Display Tasks:**
+   If a plan exists, get task information using cc-plan commands:
 
    ```bash
-   # Get the plan content
-   plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+   # Get active plan ID
+   plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
 
-   # Parse tasks using the XML parser utility
-   tasks_json=$(echo "$plan_content" | utils/parse-tasks.sh)
+   # List all tasks in the plan
+   tasks_json=$(cc-plan task list --plan-id "$plan_id")
 
-   # Build dependency graph if needed
-   dependency_graph=$(echo "$plan_content" | utils/parse-tasks.sh "" "graph")
+   # Alternative: List tasks by session ID
+   # tasks_json=$(cc-plan task list --session-id "$CLAUDE_SESSION_ID")
    ```
 
    Display task summary:
 
-   - Total number of tasks from parsed XML
-   - Completed vs pending tasks by status attribute
+   - Total number of tasks from JSON response
+   - Completed vs pending tasks by status field
    - Current or next task to work on based on dependencies
    - Task dependency relationships
 
 5. **Handle User Questions:**
    If arguments are provided (user asked a specific question):
 
-   - Analyze the question in context of the found plan and parsed XML tasks
-   - Provide specific answers based on the plan content and parsed task data
-   - Reference specific tasks from XML with IDs, titles, dependencies when relevant
-   - Use parsed task data to answer questions about files, types, dependencies
+   - Analyze the question in context of the found plan and task list
+   - Provide specific answers based on the plan content and task data from cc-plan
+   - Reference specific tasks with IDs, titles, dependencies when relevant
+   - Use task data from cc-plan to answer questions about files, types, dependencies
    - If the question cannot be answered from the plan, say so clearly
 
 6. **Response Format:**
@@ -84,6 +84,9 @@ $ARGUMENTS
 
    Status: [Active/Inactive] | Tasks: [X completed, Y pending, Z in-progress]
 
+   Task Summary: (from cc-plan task list)
+   Total: [N] tasks
+
    Task Progress:
    ✅ [Task ID]: [Task Title] (completed)
    🔄 [Task ID]: [Task Title] (in-progress)
@@ -94,8 +97,8 @@ $ARGUMENTS
    - Task [ID] enables: [dependent1, dependent2]
 
    Key Areas:
-   - [Component/file 1 from <File> elements]
-   - [Component/file 2 from <File> elements]
+   - [Component/file 1 from task data]
+   - [Component/file 2 from task data]
 
    Next Action: [What should be done next based on dependency graph]
    ```

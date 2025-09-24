@@ -20,37 +20,30 @@ $ARGUMENTS
    ```
 
 2. **Plan Analysis:**
-   Use the XML task parser utility to extract and process tasks:
+   Use the cc-plan task commands to extract and process tasks:
    ```bash
-   # Get the plan content
-   plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+   # Get active plan ID
+   plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
 
-   # Parse all tasks using the utility
-   tasks_json=$(echo "$plan_content" | utils/parse-tasks.sh)
-
-   # Build dependency graph
-   dependency_graph=$(echo "$plan_content" | utils/parse-tasks.sh "" "graph")
+   # List all tasks in the plan
+   tasks_json=$(cc-plan task list --plan-id "$plan_id")
    ```
-   - Parse the plan content to extract XML `<Tasks>` section using parse-tasks.sh
-   - Parse individual `<Task>` elements with their XML attributes and fields
-   - Extract task IDs, titles, dependencies, and current status from XML
-   - Build dependency graph from `<Dependencies>` fields using parser utility
+   - Use `cc-plan task list` to get all tasks with their current status
+   - Extract task IDs, titles, dependencies, and current status from JSON response
+   - Build dependency graph from task dependencies
    - Create task execution queue respecting dependency order
 
 3. **Task Execution Loop:**
    For each task in the execution queue:
 
    **a) Task Execution Phase:**
-   - Mark task as in_progress in the XML:
+   - Mark task as in_progress:
      ```bash
-     # Get current plan content
-     plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+     # Get active plan ID
+     plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
 
      # Update task status to in_progress
-     updated_plan=$(echo "$plan_content" | utils/parse-tasks.sh "" "$task_id" "update-status" "in_progress")
-
-     # Update the plan with new status
-     echo "$updated_plan" | cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "$(cat)"
+     cc-plan task update-status --plan-id "$plan_id" --task-id "$task_id" --status="in-progress"
      ```
    - Launch the plan-task-executor agent with the specific task
    - Provide clear task description and requirements
@@ -67,16 +60,13 @@ $ARGUMENTS
    - Ensure all quality standards are met
 
    **d) Task Completion:**
-   - Mark task as completed in the XML using status update utility:
+   - Mark task as completed:
      ```bash
-     # Get current plan content
-     plan_content=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+     # Get active plan ID
+     plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
 
      # Update task status to completed
-     updated_plan=$(echo "$plan_content" | utils/parse-tasks.sh "" "$task_id" "update-status" "completed")
-
-     # Update the plan with new status
-     echo "$updated_plan" | cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "$(cat)"
+     cc-plan task update-status --plan-id "$plan_id" --task-id "$task_id" --status="completed"
      ```
    - Move to next task in queue
 
@@ -139,10 +129,12 @@ $ARGUMENTS
 6. **Progress Tracking:**
 
    **Task Status Updates:**
-   Track progress by updating XML status attributes throughout execution:
-   - `pending` → `in_progress` when task execution begins
-   - `in_progress` → `completed` when task passes review
-   - Status remains `in_progress` during revision cycles
+   Track progress by updating task status using cc-plan commands throughout execution:
+   - `pending` → `in-progress` when task execution begins
+   - `in-progress` → `completed` when task passes review
+   - Status remains `in-progress` during revision cycles
+
+   Valid statuses: `pending`, `in-progress`, `completed`
 
    **Real-time Status:**
    ```
@@ -151,14 +143,14 @@ $ARGUMENTS
    Plan: [Plan Title]
    Progress: [X/Y] tasks completed
 
-   ✅ Task 1: [Title] - Completed (status="completed")
-   ✅ Task 2: [Title] - Completed (status="completed")
-   🔄 Task 3: [Title] - In Progress (status="in_progress")
-   ⏳ Task 4: [Title] - Pending (status="pending")
-   ⏳ Task 5: [Title] - Pending (status="pending")
+   ✅ Task 1: [Title] - Completed
+   ✅ Task 2: [Title] - Completed
+   🔄 Task 3: [Title] - In Progress
+   ⏳ Task 4: [Title] - Pending
+   ⏳ Task 5: [Title] - Pending
 
    Current Status: [detailed status of current task]
-   XML Status Sync: ✅ Task statuses updated in plan
+   Task Status Sync: ✅ Task statuses updated in plan
    ```
 
    **Final Summary:**

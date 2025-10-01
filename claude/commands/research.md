@@ -1,6 +1,6 @@
 ---
 description: Research and investigate potential implementation plans by exploring high-level milestones and detailed investigation
-allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(cc-plan:*), Task
+allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(cc-plan:*)
 model: claude-opus-4-1-20250805
 ---
 
@@ -25,6 +25,17 @@ You are in **UltraThink research mode** - leveraging maximum cognitive capabilit
 
 $ARGUMENTS
 
+## Maturity Level Assessment
+
+Before beginning research, determine the appropriate maturity level for this implementation:
+
+- **proof-of-concept**: Quick validation research, focus on feasibility analysis, minimal architecture planning
+- **mvp**: Customer-focused research, essential feature analysis, basic integration planning
+- **production**: Comprehensive research, full architecture analysis, performance and security considerations
+- **enterprise**: Extensive research, compliance analysis, complete risk assessment, strategic alignment
+
+If the maturity level is not clear from the user's request, ensure the research plan includes it as a Question in the Questions XML section with `type="maturity"` attribute.
+
 ## Instructions
 
 ### Phase 1: Initial Research Setup
@@ -42,9 +53,16 @@ $ARGUMENTS
    cc-plan plan get --session-id "$CLAUDE_SESSION_ID"
    ```
 
-   **Special Case - No Arguments with Active Research Plan Notes:**
-   If `/research` is called without arguments AND an active research plan exists with notes, automatically process those notes:
+   **Special Case - No Arguments with Active Research Plan Questions/Notes:**
+   If `/research` is called without arguments AND an active research plan exists with questions or notes, automatically process them:
 
+   **Questions Processing:**
+   - Questions are formatted in a `<Questions>` XML container with multiple `<Item>` tags containing `<Question>` and `<Answer>` pairs
+   - If Questions section has filled Answer fields, process those answers to refine the research plan
+   - **Remove the entire `<Questions>` section after processing answers** - all answered questions are consumed during refinement
+   - Questions with empty answers remain in the research plan for user completion
+
+   **Notes Processing:**
    - Notes are formatted in a single `<Notes>` XML container with multiple `<Note>` tags inside at the end of the research plan file
    - Read the referenced files and line numbers mentioned in each note
    - Analyze what changes are needed to the research plan based on all the notes
@@ -56,18 +74,16 @@ $ARGUMENTS
    **Standard Case - Research Plan Exists:**
    If a research plan exists (and no automatic note processing occurred), check the plan status:
 
-   **If Research Plan Exists - Initial Phase:**
-   If a plan marked as "Research" exists but milestones haven't been investigated yet, proceed to Phase 2 (Detailed Milestone Investigation).
-
-   **If Research Plan Exists - Investigation Complete:**
-   If all milestones have been investigated, display the research summary and ask if they want to:
+   **If Research Plan Exists - Ready for Implementation:**
+   If a research plan exists and is complete, display the research summary and ask if they want to:
    - Review and modify the research findings
-   - Add additional milestones for investigation
-   - Transition to implementation planning using `/plan`
+   - Add additional milestones for research
+   - Transition to implementation planning using `/research-implement`
    - Create new research for a different feature
 
+
    **If No Research Plan Exists:**
-   Proceed with creating a new research plan (continue with steps 2-5).
+   Proceed with creating a new research plan (continue with steps 2-4).
 
 2. **UltraThink Initial Investigation Phase:**
 
@@ -94,107 +110,66 @@ $ARGUMENTS
    - Performance and scalability bottlenecks that could emerge
    - Integration complexity with external systems and third-party dependencies
 
-3. **UltraThink Clarification and Alternative Exploration:**
+3. **Deliverable-Focused Milestone Identification:**
 
-   Apply systematic questioning and comprehensive alternative analysis to understand all dimensions:
-
-   **Strategic Clarification Questions (ask 5-7 deep questions):**
-   - What are the primary use cases, user workflows, and success metrics this feature should achieve?
-   - What specific performance, scalability, availability, and security requirements must be satisfied?
-   - How should this integrate with existing systems, and what are the data consistency and transaction requirements?
-   - Are there preferred technologies, architectural patterns, or strategic technology directions to align with?
-   - What are the timeline expectations, resource constraints, and acceptable risk levels?
-   - Who are the primary users, stakeholders, and what are their technical capabilities and business requirements?
-   - What compliance, accessibility, regulatory, or governance requirements must be addressed?
-   - How does this feature align with the overall business strategy and technology roadmap?
-   - What are the expected usage patterns, growth projections, and scalability requirements?
-
-   **UltraThink Alternative Approaches Investigation:**
-   Systematically explore 3-4 comprehensive approaches using multi-dimensional analysis:
-
-   **Approach A: [Evolutionary Enhancement]**
-   - Build upon existing systems with strategic architectural improvements
-   - **Technical Pros:** Lower risk, faster delivery, leverages existing infrastructure and team knowledge
-   - **Technical Cons:** May inherit architectural debt, limited scalability potential, constraint by existing patterns
-   - **Business Impact:** Faster time-to-market, lower initial investment, reduced operational disruption
-   - **Risk Profile:** Low implementation risk, moderate technical debt accumulation, limited future flexibility
-   - **Best for:** Tight timelines, budget constraints, risk-averse environments, proven existing architecture
-
-   **Approach B: [Modern Greenfield Implementation]**
-   - Build new system components using contemporary architecture patterns and technologies
-   - **Technical Pros:** Maximum flexibility, scalability, maintainability, modern technology stack
-   - **Technical Cons:** Higher complexity, longer development time, integration challenges, learning curve
-   - **Business Impact:** Higher initial investment, longer time-to-market, potential for competitive advantage
-   - **Risk Profile:** Higher implementation risk, lower technical debt, maximum future adaptability
-   - **Best for:** Long-term strategic initiatives, competitive differentiation, scalability requirements
-
-   **Approach C: [Strategic Hybrid Solution]**
-   - Selectively modernize critical components while enhancing existing stable systems
-   - **Technical Pros:** Balanced risk-reward, preserves working systems, enables gradual evolution
-   - **Technical Cons:** Complex integration, dual-system maintenance, potential architectural inconsistency
-   - **Business Impact:** Moderate investment, balanced timeline, incremental value delivery
-   - **Risk Profile:** Moderate risk, controlled technical debt, good adaptability
-   - **Best for:** Large existing systems, phased transformation strategies, mixed technology environments
-
-   **Approach D: [Platform-Centric Solution]** (if applicable)
-   - Build upon or extend existing platform capabilities with standardized integration patterns
-   - **Technical Pros:** Leverages platform investments, standardized patterns, operational consistency
-   - **Technical Cons:** Platform lock-in, limited customization, dependency on platform evolution
-   - **Business Impact:** Platform ROI maximization, operational efficiency, vendor relationship leverage
-   - **Risk Profile:** Platform dependency risk, moderate flexibility, strong operational stability
-   - **Best for:** Platform-heavy environments, standardization goals, operational efficiency priorities
-
-   **Direction Selection:**
-   After presenting alternatives, ask the user to select their preferred approach:
-   - "Based on your requirements and constraints, which approach aligns best with your goals?"
-   - "Are there aspects from multiple approaches you'd like to combine?"
-   - "Do any of these approaches raise concerns or require modification?"
-
-   Wait for user response before proceeding to milestone identification.
-
-4. **High-Level Milestone Identification:**
-
-   Create 3-6 major milestones that represent significant phases of the implementation:
-
-   - **Milestone 1:** Foundation/Infrastructure setup
-   - **Milestone 2:** Core functionality implementation
-   - **Milestone 3:** Integration with existing systems
-   - **Milestone 4:** User interface and experience
-   - **Milestone 5:** Testing and validation
-   - **Milestone 6:** Performance and optimization
-
-   Each milestone should represent a major phase of work that could potentially be split into separate implementation plans.
+   Create 3-6 major milestones that represent concrete deliverables with clear scope based on initial understanding.
 
 4. **UltraThink Research Plan Generation:**
 
-   After user selects their preferred approach, generate a comprehensive research plan using UltraThink methodology:
+   Generate a comprehensive research plan using UltraThink methodology with mandatory clarification questions:
 
    ```markdown
    # UltraThink Research Plan: [Feature Name]
 
    **Status: UltraThink Research Phase**
-   **Research Depth:** Maximum Cognitive Analysis
+   **Maturity Level:** [Insert determined maturity level]
+   **Research Depth:** [Adjusted based on maturity - Maximum for enterprise/production, Focused for mvp, Essential for proof-of-concept]
    **Methodology:** Multi-Dimensional Systems Thinking
 
    ## Strategic Overview
 
    [Comprehensive description of what needs to be researched and implemented, including business value, technical scope, and strategic alignment]
 
-   ## Selected Approach Analysis
-
-   **Chosen Direction:** [Selected approach name]
-   **Strategic Rationale:** [Multi-dimensional reasoning for approach selection including technical, business, risk, and timeline factors]
-   **Critical Success Factors:** [Key elements that must be achieved for approach success]
-   **Approach Validation Criteria:** [How we will confirm this approach remains optimal during research]
 
    ## Comprehensive Requirements Analysis
 
-   **Primary Use Cases & User Journeys:** [Detailed user workflows and success scenarios]
-   **Performance & Scalability Profile:** [Specific metrics, load patterns, and growth projections]
-   **Integration Architecture:** [System integration patterns, data flow, and API requirements]
-   **Technical Constraints & Opportunities:** [Limitations, preferences, and optimization possibilities]
-   **Timeline & Resource Framework:** [Delivery expectations, team capabilities, and constraint analysis]
-   **Compliance & Governance Requirements:** [Regulatory, security, and organizational requirements]
+   **Primary Use Cases & User Journeys:** [To be clarified through questions]
+   **Performance & Scalability Profile:** [To be clarified through questions]
+   **Integration Architecture:** [To be clarified through questions]
+   **Technical Constraints & Opportunities:** [To be clarified through questions]
+   **Timeline & Resource Framework:** [To be clarified through questions]
+   **Compliance & Governance Requirements:** [To be clarified through questions]
+
+   <Questions>
+     <Item>
+       <Question type="maturity">What maturity level should this implementation target? (proof-of-concept, mvp, production, enterprise)</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>What are the primary use cases, user workflows, and success metrics this feature should achieve?</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>What specific performance, scalability, availability, and security requirements must be satisfied?</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>How should this integrate with existing systems, and what are the data consistency and transaction requirements?</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>Are there preferred technologies, architectural patterns, or strategic technology directions to align with?</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>What are the timeline expectations, resource constraints, and acceptable risk levels?</Question>
+       <Answer></Answer>
+     </Item>
+     <Item>
+       <Question>Who are the primary users, stakeholders, and what are their technical capabilities and business requirements?</Question>
+       <Answer></Answer>
+     </Item>
+   </Questions>
 
    ## UltraThink Research Objectives
 
@@ -216,54 +191,65 @@ $ARGUMENTS
    - Plan validation checkpoints and course-correction mechanisms
    - Design monitoring and early warning systems
 
-   ## UltraThink Research Milestones
+   ## Implementation-Focused Research Milestones
 
-   ### Milestone 1: [Foundation Architecture Analysis]
-   - **Multi-Dimensional Scope:** [Comprehensive coverage across technical, business, and operational domains]
-   - **Strategic Questions:** [Deep investigative questions addressing root causes and systemic implications]
-   - **Expected Insights:** [Specific knowledge, decisions, and strategic recommendations to be gained]
-   - **Success Criteria:** [Measurable outcomes and validation checkpoints]
-   - **Risk Factors:** [Potential challenges and mitigation approaches]
-   - **Dependencies:** [Prerequisites and parallel investigation requirements]
-   - **Status:** Pending UltraThink Investigation
+   ### Milestone 1: [Concrete Deliverable Name - What We Build]
+   - **What We Build:** [Specific code artifacts, files, and deliverables to be created]
+   - **Where We Build:** [Target directories, file paths, and codebase locations]
+   - **Why We Build:** [Business objective and how this milestone enables subsequent work]
+   - **Success Criteria:** [Measurable completion indicators - tests pass, features work, integration successful]
+   - **Implementation Scope:** [Specific components, APIs, database changes, or UI elements to create]
+   - **Dependencies:** [What must exist before this milestone can be started]
 
-   ### Milestone 2: [Core Implementation Strategy]
-   - **Multi-Dimensional Scope:** [Technical implementation patterns, integration architecture, and performance optimization]
-   - **Strategic Questions:** [Implementation approach validation, technology selection, and architectural pattern analysis]
-   - **Expected Insights:** [Technical approach recommendations, implementation methodology, and risk mitigation strategies]
-   - **Success Criteria:** [Technical feasibility confirmation and approach validation]
-   - **Risk Factors:** [Implementation complexity and integration challenges]
-   - **Dependencies:** [Foundation analysis completion and approach validation]
-   - **Status:** Pending UltraThink Investigation
+   ### Milestone 2: [Concrete Deliverable Name - What We Build]
+   - **What We Build:** [Specific code artifacts, files, and deliverables to be created]
+   - **Where We Build:** [Target directories, file paths, and codebase locations]
+   - **Why We Build:** [Business objective and how this milestone enables subsequent work]
+   - **Success Criteria:** [Measurable completion indicators - tests pass, features work, integration successful]
+   - **Implementation Scope:** [Specific components, APIs, database changes, or UI elements to create]
+   - **Dependencies:** [What must exist before this milestone can be started]
 
-   [Continue with UltraThink-enhanced milestone structure for all remaining milestones...]
+   [Continue with implementation-focused milestone structure for all remaining milestones...]
 
    ## Next Steps
 
-   1. Conduct detailed investigation of each milestone
-   2. Create detailed implementation plans for each milestone
-   3. Determine if milestones should be separate plans or combined
-   4. Transition to implementation planning phase
+   1. Answer the strategic questions above using cc-plan
+   2. Research command will automatically process answers and refine the plan
+   3. Transition to implementation planning using `/research-implement`
 
-   ## Investigation Status
+   ## Research Status
 
-   - [ ] Milestone 1 Investigation
-   - [ ] Milestone 2 Investigation
-   - [ ] Milestone 3 Investigation
-   - [ ] Milestone 4 Investigation
-   - [ ] Milestone 5 Investigation
-   - [ ] Milestone 6 Investigation
+   ✅ Strategic milestone definition and architectural analysis complete
+   ✅ High-level approach validation and risk assessment complete
+   ✅ System integration points and technology alignment verified
+
+   **Ready for Implementation Planning:** Use `/research-implement` to create detailed implementation plans for all milestones
    ```
 
    Save this research plan using cc-plan:
 
    ```bash
-   cc-plan plan create --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --content "[research plan content]"
+   cc-plan plan create --project-path "$(pwd)" --session-id "$CLAUDE_SESSION_ID" --maturity "[maturity-level]" --content "[research plan content]"
    ```
 
-### Phase 2: Detailed Milestone Investigation
+### Phase 2: UltraThink Investigation and Analysis
 
-If a research plan already exists, proceed with detailed investigation of each milestone:
+The research command performs comprehensive investigation of each milestone using UltraThink methodology. This is the complete investigation phase - no separate deep research is required.
+
+**Research Command Investigation Scope:**
+- High-level architectural analysis and milestone relationships
+- Strategic approach validation and risk assessment
+- System integration points and cross-cutting concerns
+- Technology stack alignment and strategic considerations
+
+**Plan Generator Agent Scope (handled later):**
+- File-level implementation details and specific code changes
+- Detailed task breakdown and technical specifications
+- Individual component integration and testing strategies
+
+### Phase 2: Research Plan Refinement
+
+If a research plan already exists, focus on note processing and plan refinement:
 
 1. **Load Existing Research Plan:**
 
@@ -271,13 +257,32 @@ If a research plan already exists, proceed with detailed investigation of each m
    cc-plan plan get --session-id "$CLAUDE_SESSION_ID"
    ```
 
-2. **Process Research Plan Notes (if present):**
+2. **Process Research Plan Questions/Notes (if present):**
 
-   Before proceeding with milestone investigation, check if the research plan contains notes:
+   Check if the research plan contains questions or notes for iterative refinement:
+
+   **Questions Detection:**
+   - Look for `<Questions>` XML container in the research plan
+   - If questions with answers are found, process them to refine the research plan
+
+   **Questions Processing:**
+   ```
+   => Processing Research Plan Questions
+
+   Found [N] answered questions in the research plan:
+
+   Question 1: [Question summary]
+   Answer: [User's answer]
+
+   Question 2: [Question summary]
+   Answer: [User's answer]
+
+   Analyzing answers and updating research plan...
+   ```
 
    **Notes Detection:**
    - Look for `<Notes>` XML container at the end of the research plan
-   - If notes are found, process them before continuing with milestone investigation
+   - If notes are found, process them to refine the research plan
 
    **Notes Processing:**
    ```
@@ -294,191 +299,60 @@ If a research plan already exists, proceed with detailed investigation of each m
    Analyzing notes and updating research plan...
    ```
 
+   **Questions Analysis Steps:**
+   - Parse all answered questions to extract user requirements and constraints
+   - Analyze how answers impact milestone definition and research focus
+   - Modify milestones based on clarifications from answers
+   - Adjust user requirements summary based on answered questions
+   - Update research objectives based on question responses
+   - Update maturity level based on maturity question answer
+
    **Notes Analysis Steps:**
    - Read all referenced files and line numbers mentioned in notes
    - Analyze what changes are needed to the research plan based on notes
-   - Update approach selection if notes suggest different direction
    - Modify milestones based on new insights from notes
    - Adjust user requirements summary if notes provide clarification
    - Update research objectives based on note feedback
 
    **Research Plan Updates:**
    Apply necessary changes to the research plan:
-   - Approach modifications (if notes suggest better alternatives)
    - Milestone adjustments (scope changes, new milestones, removed milestones)
-   - Requirement clarifications (updated based on note insights)
-   - Investigation priority changes (based on note findings)
+   - Requirement clarifications (updated based on question answers and note insights)
+   - Investigation priority changes (based on question responses and note findings)
+   - Maturity level updates (if maturity question provides new information)
 
-   **Complete Notes Processing:**
-   - Update the research plan with all note-based changes
+   **Complete Questions/Notes Processing:**
+   - Update the research plan with all question/note-based changes
+   - **Remove the entire `<Questions>` section** after processing answers
    - **Remove the entire `<Notes>` section** after processing
    - Save the updated research plan using cc-plan
-   - Continue with milestone investigation using updated plan
 
    ```bash
-   cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "[updated research plan content]"
+   cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --maturity "[maturity-level]" --content "[updated research plan content]"
    ```
 
-   **If No Notes Found:**
-   Continue directly to approach validation and milestone investigation.
+   **If No Questions or Notes Found:**
+   Research plan is ready for detailed investigation.
 
-3. **Approach Validation:**
+3. **Research Plan Ready for Investigation:**
 
-   Before investigating milestones, validate the selected approach through initial codebase analysis:
-
-   ```
-   => Validating Selected Approach: [Approach Name]
-
-   Analyzing current codebase to validate approach feasibility...
-   Checking integration points and existing patterns...
-   Identifying potential challenges with selected approach...
-   ```
-
-   If significant issues are discovered with the selected approach, present alternative recommendations:
+   After processing any questions/notes and refining the research plan, indicate readiness for detailed investigation:
 
    ```
-   ⚠️  Approach Validation Results:
-
-   Selected Approach: [Approach Name]
-   Issues Discovered:
-   - [Issue 1 with impact assessment]
-   - [Issue 2 with impact assessment]
-
-   Alternative Recommendations:
-   - Consider [Alternative Approach] because [reasoning]
-   - Modified approach: [Suggested modifications to selected approach]
-
-   Would you like to:
-   1. Continue with selected approach and plan mitigation strategies
-   2. Switch to recommended alternative approach
-   3. Modify the selected approach based on findings
-   ```
-
-   Wait for user decision before proceeding to milestone investigation.
-
-3. **Investigate Each Milestone:**
-
-   For each milestone that hasn't been investigated yet, launch the Plan Researcher agent:
-
-   ```
-   => Investigating Milestone [N]: [Milestone Name]
-
-   Selected Approach: [Approach name and key considerations]
-   Milestone Scope: [detailed scope description]
-   Key Research Questions: [list of questions to investigate]
-   Validation Context: [any approach-specific considerations from validation]
-   Notes Context: [any milestone-specific insights from processed notes]
-
-   Launching Plan Researcher agent...
-   ```
-
-   **Notes Integration for Agent:**
-   If notes were processed that relate to specific milestones, include this context in the agent prompt to ensure the research considers any user feedback or discoveries captured in the notes.
-
-3. **UltraThink Plan Researcher Agent Tasks:**
-
-   For each milestone, use the Task tool to launch a "plan-researcher" agent with this UltraThink-enhanced prompt:
-
-   ```
-   ULTRATHINK MODE: Conduct maximum cognitive depth research and planning for the following milestone within the context of the selected approach. Apply multi-dimensional analysis, systems thinking, and comprehensive investigation techniques.
-
-   ## UltraThink Milestone Context
-   Milestone: [Milestone Name]
-   Multi-Dimensional Scope: [Comprehensive scope across technical, business, operational domains]
-   Strategic Questions: [Deep investigative questions addressing systemic implications]
-   Success Criteria: [Measurable outcomes and validation checkpoints]
-   Risk Factors: [Potential challenges requiring mitigation strategies]
-
-   ## Strategic Approach Context
-   Chosen Approach: [Selected approach name with strategic rationale]
-   Multi-Dimensional Rationale: [Technical, business, risk, and timeline factors in approach selection]
-   Comprehensive Requirements: [Full user requirements matrix from clarification analysis]
-   Validation Framework: [Criteria for confirming approach optimality]
-   Notes Context: [Strategic insights from processed research plan notes]
-
-   ## UltraThink Research Objectives
-   1. **Multi-Dimensional Codebase Analysis:** Systematically examine current implementations using technical, architectural, performance, and maintainability lenses within approach context
-   2. **Comprehensive Component Mapping:** Identify all files, components, interfaces, and dependencies requiring changes with impact analysis
-   3. **Systems Integration Analysis:** Map integration points, data flows, and dependencies with emphasis on systemic effects and emergent behaviors
-   4. **Strategic Implementation Evaluation:** Analyze 3-5 implementation options using quantitative and qualitative criteria within approach constraints
-   5. **Advanced Task Architecture:** Create detailed, dependency-aware implementation tasks with resource allocation and complexity modeling
-   6. **Risk-Informed Assessment:** Evaluate risks across technical, operational, business, and organizational dimensions with comprehensive mitigation strategies
-   7. **Innovation with Stability Analysis:** Explore cutting-edge implementation methods while ensuring architectural consistency and operational reliability
-   8. **Approach Validation & Optimization:** Confirm approach feasibility and identify optimization opportunities specific to this milestone
-
-   ## Expected UltraThink Output
-   - **Strategic Analysis:** Comprehensive current system state analysis with architectural pattern recognition
-   - **Technical Specification:** Detailed files, components, interfaces, and integration requirements with evolution planning
-   - **Multi-Method Evaluation:** 3-5 implementation approaches with detailed trade-off analysis and decision matrices
-   - **Advanced Task Planning:** Hierarchical task breakdown with dependency modeling, resource allocation, and timeline projections
-   - **Comprehensive Risk Management:** Multi-dimensional risk assessment with layered mitigation strategies and contingency planning
-   - **Systems Integration Plan:** Cross-milestone dependencies and integration requirements with validation checkpoints
-   - **Approach Optimization:** Feasibility confirmation with strategic recommendations for approach enhancement
-
-   ## UltraThink Research Guidelines
-   - **Single Milestone Deep Focus:** Apply maximum cognitive depth to this milestone without diluting analysis across the entire feature set
-   - **Strategic Approach Alignment:** Ensure all recommendations optimize for the selected overall approach while identifying improvement opportunities
-   - **Multi-Stakeholder Value:** Consider how this milestone delivers value to users, developers, operators, and business stakeholders
-   - **Evidence-Based Integration:** Incorporate insights from processed research plan notes with validation through codebase investigation
-   - **Opportunity & Constraint Balance:** Identify approach-specific opportunities while honestly assessing constraints and limitations
-   - **Adaptive Planning:** Design milestone-level alternatives and pivot strategies if systemic issues emerge with the overall approach
-   - **Comprehensive Context:** Address all milestone-specific concerns from processed notes while maintaining systems thinking perspective
-   - **Future-Oriented Design:** Plan for extensibility, scalability, and evolution beyond immediate milestone requirements
-   ```
-
-4. **Update Research Plan:**
-
-   After each milestone investigation, update the research plan with findings:
-
-   ```bash
-   cc-plan plan update --session-id "$CLAUDE_SESSION_ID" --content "[updated research plan with findings]"
-   ```
-
-5. **Research Progress Tracking:**
-
-   ```
-   🔍 Research Progress
+   ✅ Research Plan Ready!
 
    Research Plan: [Plan Title]
-   Progress: [X/Y] milestones investigated
+   Status: Ready for Implementation Planning
+   Approach: [Selected approach]
+   Milestones: [N] milestones defined
 
-   ✅ Milestone 1: [Name] - Investigation Complete
-   ✅ Milestone 2: [Name] - Investigation Complete
-   🔍 Milestone 3: [Name] - Under Investigation
-   ⏳ Milestone 4: [Name] - Pending
-   ⏳ Milestone 5: [Name] - Pending
-
-   Current Focus: [current milestone being investigated]
-   ```
-
-6. **Final Research Summary:**
-
-   After all milestones are investigated, create a comprehensive summary:
-
-   ```
-   🎯 Research Complete!
-
-   Research Plan: [Plan Title]
-   Total Milestones: [N]
-   Investigated: [N]
-
-   Key Findings:
-   - [major discovery 1]
-   - [major discovery 2]
-   - [major discovery 3]
-
-   Recommended Implementation Approach:
-   - [approach recommendation]
-
-   Suggested Plan Breakdown:
-   Plan 1: [Milestone groups] - [reasoning]
-   Plan 2: [Milestone groups] - [reasoning]
-   Plan 3: [Milestone groups] - [reasoning]
+   The research plan has been created/refined and is ready for implementation planning.
 
    Next Steps:
-   1. Review research findings
-   2. Create implementation plans using /plan command
-   3. Begin implementation with /plan-execute
+   1. Answer questions in the research plan using cc-plan
+   2. Use `/research` again to process answers and refine the plan
+   3. Use `/research-implement` to create detailed implementation plans for all milestones
+   4. Use `/plan-execute` to execute individual milestone implementations
    ```
 
 ## Error Handling
@@ -493,10 +367,10 @@ If a research plan already exists, proceed with detailed investigation of each m
 - Continue with high-level planning
 - Note areas requiring manual investigation
 
-**Agent Failures:**
-- Handle Plan Researcher agent errors gracefully
-- Fall back to manual investigation
-- Continue with remaining milestones
+**Plan Processing Failures:**
+- Handle cc-plan errors gracefully
+- Continue with manual planning if needed
+- Provide clear error messages for plan issues
 
 ## Usage Examples
 
@@ -512,13 +386,52 @@ If a research plan already exists, proceed with detailed investigation of each m
 **Process research plan with notes:**
 `/research` (when research plan contains Notes XML section)
 
+**Transition to implementation:**
+`/research-implement` (after research plan is complete)
+
 ## Key Features
 
 - **High-Level Exploration:** Creates milestone-based research approach
-- **Detailed Investigation:** Uses specialized agent for deep milestone analysis
+- **Comprehensive Investigation:** Performs complete milestone analysis using UltraThink methodology
 - **Architectural Focus:** Emphasizes system design and integration points
 - **Implementation Planning:** Prepares for transition to detailed implementation plans
 - **Risk Assessment:** Identifies challenges and unknowns early
+
+## Questions XML Format for Research Plans
+
+Research plans support iterative refinement through Questions XML sections. Users can add questions to research plans using cc-plan, and the research command will automatically process answered questions.
+
+**Questions Format:**
+```xml
+<Questions>
+  <Item>
+    <Question>1. What specific performance requirements do we need to meet?</Question>
+    <Answer>Must support 10,000 concurrent users with sub-200ms response times</Answer>
+  </Item>
+  <Item>
+    <Question>2. Should this integrate with existing authentication systems?</Question>
+    <Answer>Yes, integrate with current OAuth service at src/auth/oauth.service.ts</Answer>
+  </Item>
+  <Item>
+    <Question>3. Are there specific technology constraints or preferences?</Question>
+    <Answer>Prefer TypeScript and existing React framework, avoid new dependencies</Answer>
+  </Item>
+</Questions>
+```
+
+**Questions Processing:**
+- Questions are automatically detected and processed when `/research` is called without arguments
+- Only questions with filled Answer fields are processed
+- Research plan is updated based on question answers
+- Questions section is removed after processing answers
+- Empty questions remain in plan for user completion
+
+**Common Question Types:**
+- **Performance Requirements:** "What performance/scalability requirements are needed?"
+- **Integration Points:** "Should this integrate with existing systems?"
+- **Technology Preferences:** "Are there specific technologies or frameworks to use?"
+- **Business Constraints:** "What are the timeline or resource constraints?"
+- **User Requirements:** "Who are the primary users and what are their needs?"
 
 ## Notes XML Format for Research Plans
 
@@ -558,7 +471,7 @@ Research plans support iterative refinement through Notes XML sections. Users ca
 
 ## UltraThink Research Commitment
 
-Remember: **UltraThink Research mode** leverages maximum cognitive capabilities for exploratory and investigative analysis - no actual code implementation occurs during research phase.
+Remember: **UltraThink Research mode** leverages maximum cognitive capabilities for comprehensive investigation and strategic planning. The research command completes the full investigation phase, providing strategic milestones ready for detailed implementation planning by the plan generator agent.
 
 **UltraThink Research Promise:**
 - **Maximum Analytical Depth:** Every investigation applies multi-dimensional analysis, systems thinking, and comprehensive pattern recognition

@@ -25,10 +25,15 @@ $ARGUMENTS
    # Get active plan ID
    plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
 
+   # Get plan details including name for commit prefix
+   plan_data=$(cc-plan plan get --session-id "$CLAUDE_SESSION_ID")
+   plan_name=$(echo "$plan_data" | jq -r '.plan.title // "Unknown Plan"')
+
    # List all tasks in the plan
    tasks_json=$(cc-plan task list --plan-id "$plan_id")
    ```
    - Use `cc-plan task list` to get all tasks with their current status
+   - Extract plan name for commit message prefix
    - Extract task IDs, titles, dependencies, and current status from JSON response
    - Build dependency graph from task dependencies
    - Create task execution queue respecting dependency order
@@ -70,7 +75,46 @@ $ARGUMENTS
      ```
    - Move to next task in queue
 
-4. **Workflow Coordination:**
+4. **Plan Completion and Commit:**
+   After all tasks are completed successfully:
+
+   **a) Prepare Commit:**
+   ```bash
+   # Get plan name for commit prefix
+   plan_name=$(echo "$plan_data" | jq -r '.plan.title // "Unknown Plan"')
+
+   # Check for changes to commit
+   git status --porcelain
+   ```
+
+   **b) Create Commit Message:**
+   - Extract plan name from the stored plan data
+   - Create descriptive summary of what was implemented
+   - Use format: `[Plan Name]: [Summary of implementation]`
+   - Include bullet points for major changes
+   - Add standard Claude Code footer
+
+   **c) Execute Commit:**
+   ```bash
+   # Add all changes
+   git add .
+
+   # Commit with plan-prefixed message
+   git commit -m "$(cat <<'EOF'
+   [Plan Name]: Summary of implementation
+
+   - Key change 1
+   - Key change 2
+   - Key change 3
+
+   🤖 Generated with [Claude Code](https://claude.ai/code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   EOF
+   )"
+   ```
+
+5. **Workflow Coordination:**
 
    **Task Execution:**
    ```
@@ -109,7 +153,7 @@ $ARGUMENTS
    Re-launching plan-task-executor with feedback...
    ```
 
-5. **Error Handling:**
+6. **Error Handling:**
 
    **Missing Plan:**
    - Show helpful error message
@@ -126,7 +170,7 @@ $ARGUMENTS
    - Fall back to basic quality checks
    - Continue with next task if possible
 
-6. **Progress Tracking:**
+7. **Progress Tracking:**
 
    **Task Status Updates:**
    Track progress by updating task status using cc-plan commands throughout execution:
@@ -153,31 +197,64 @@ $ARGUMENTS
    Task Status Sync: ✅ Task statuses updated in plan
    ```
 
+   **Commit Changes:**
+   After all tasks are completed, commit the changes with plan name prefix:
+   ```
+   => Committing Plan Implementation
+
+   Plan: [Plan Title]
+   Changes to commit: [Number of modified/created files]
+
+   Preparing commit with plan prefix...
+   ```
+
+   **Commit Process:**
+   - Get plan name from the loaded plan data
+   - Create commit message with format: `[Plan Name]: [Summary of changes]`
+   - Use git commands to add and commit all changes
+   - Include the standard Claude Code footer in commit message
+
+   Example commit message format:
+   ```
+   [User Authentication System - Foundation]: Implement database models and authentication service
+
+   - Created user model with validation
+   - Added authentication service with JWT support
+   - Set up database migrations for user tables
+   - Implemented password hashing utilities
+
+   🤖 Generated with [Claude Code](https://claude.ai/code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   ```
+
    **Final Summary:**
    ```
    🎉 Plan Execution Complete!
-   
+
    Plan: [Plan Title]
    Total Tasks: [N]
    Completed: [N]
    Duration: [time taken]
-   
+
    Implementation Summary:
    - [key achievement 1]
    - [key achievement 2]
    - [key achievement 3]
-   
+
    Files Modified/Created:
    - [file-path-1]: [description]
    - [file-path-2]: [description]
-   
+
+   ✅ Changes committed with plan prefix: [Plan Name]
+
    Next Steps:
    1. Run tests to verify functionality
    2. Perform integration testing
-   3. Review changes and commit
+   3. Review committed changes
    ```
 
-7. **Agent Communication Protocol:**
+8. **Agent Communication Protocol:**
 
    **To plan-task-executor:**
    ```
@@ -228,7 +305,7 @@ $ARGUMENTS
    Ensure Test Strategy is followed if specified.
    ```
 
-8. **Usage Examples:**
+9. **Usage Examples:**
 
    **Execute entire plan:**
    `/plan-execute`
@@ -245,9 +322,10 @@ $ARGUMENTS
 ## Key Features
 
 - **Automated Task Management:** Handles task sequencing and dependencies
-- **Quality Assurance:** Ensures every task meets standards before proceeding  
+- **Quality Assurance:** Ensures every task meets standards before proceeding
 - **Progress Visibility:** Real-time status updates and progress tracking
 - **Error Recovery:** Graceful handling of failures with recovery strategies
 - **Iterative Improvement:** Automatic revision cycles until quality standards are met
+- **Automatic Commits:** Commits all changes with plan name prefix for traceability
 
 Remember: Always respond in English and coordinate agents effectively to deliver high-quality implementations.

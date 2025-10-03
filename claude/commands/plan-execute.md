@@ -39,9 +39,11 @@ $ARGUMENTS
    - Create task execution queue respecting dependency order
 
 3. **Task Execution Loop:**
+   Execute all tasks sequentially without intermediate reviews:
+
    For each task in the execution queue:
 
-   **a) Task Execution Phase:**
+   **a) Task Execution:**
    - Mark task as in_progress:
      ```bash
      # Get active plan ID
@@ -53,30 +55,65 @@ $ARGUMENTS
    - Launch the plan-task-executor agent with the specific task
    - Provide clear task description and requirements
    - Wait for implementation completion
-
-   **b) Review Phase:**
-   - Launch the plan-task-reviewer agent to review the implementation
-   - Provide task context and implementation details
-   - Assess review verdict (OK or NEEDS IMPROVEMENT)
-
-   **c) Improvement Loop (if needed):**
-   - If reviewer finds issues, relay feedback to plan-task-executor
-   - Continue executor → reviewer cycles until review passes
-   - Ensure all quality standards are met
-
-   **d) Task Completion:**
    - Mark task as completed:
      ```bash
-     # Get active plan ID
-     plan_id=$(cc-plan session get-active --session-id "$CLAUDE_SESSION_ID" | jq -r '.planId')
-
      # Update task status to completed
      cc-plan task update-status --plan-id "$plan_id" --task-id "$task_id" --status="completed"
      ```
    - Move to next task in queue
+   - Continue until all tasks are executed
 
-4. **Plan Completion and Commit:**
-   After all tasks are completed successfully:
+4. **Batch Review and Fix Phase:**
+   After all tasks are executed, review the entire implementation:
+
+   **a) Collect Implementation Summary:**
+   - Gather list of all tasks executed
+   - Collect all files modified/created across all tasks
+   - Run git diff to see all changes:
+     ```bash
+     git diff
+     git status --porcelain
+     ```
+   - Prepare comprehensive summary of what was implemented
+
+   **b) Initial Review (Attempt 1 of 2):**
+   - Launch the plan-task-reviewer agent with:
+     - List of all tasks executed (IDs, titles, descriptions)
+     - Complete list of all files changed
+     - Full git diff of all changes
+     - Review attempt: 1 of 2
+   - Agent reviews entire implementation holistically
+   - Checks integration between tasks
+   - Returns verdict: OK or NEEDS IMPROVEMENT
+
+   **c) Fix Cycle (if needed):**
+   - If verdict is NEEDS IMPROVEMENT:
+     - Launch plan-task-executor agent with:
+       - All reviewer feedback
+       - List of issues to fix across all tasks
+       - Indication that this is a bulk fix request
+     - Wait for executor to fix all issues
+     - Proceed to second review
+
+   **d) Final Review (Attempt 2 of 2):**
+   - If fixes were needed, launch plan-task-reviewer again with:
+     - Updated implementation summary
+     - All files changed (including fixes)
+     - Full git diff of current state
+     - Review attempt: 2 of 2 (FINAL)
+   - Agent performs final review
+   - Returns verdict: OK or NEEDS IMPROVEMENT
+
+   **e) Accept and Proceed:**
+   - If verdict is OK after attempt 1 or 2: proceed to commit
+   - If verdict is NEEDS IMPROVEMENT after attempt 2:
+     - Log warning about unresolved quality issues
+     - Accept implementation as-is
+     - Proceed to commit
+   - Maximum 2 review attempts enforced
+
+5. **Plan Completion and Commit:**
+   After all tasks are executed and reviewed:
 
    **a) Prepare Commit:**
    ```bash
@@ -114,46 +151,62 @@ $ARGUMENTS
    )"
    ```
 
-5. **Workflow Coordination:**
+6. **Workflow Coordination:**
 
    **Task Execution:**
    ```
    => Executing Task [N/Total]: [Task Title]
-   
+
    Task Description:
    [detailed task requirements]
-   
+
    Dependencies: [list of prerequisite tasks]
-   
+
    Launching plan-task-executor...
+
+   ✅ Task [N] completed
+   Moving to next task...
    ```
 
-   **Review Process:**
+   **Batch Review Process:**
    ```
-   => Reviewing Implementation for Task [N]: [Task Title]
-   
-   Implementation Summary:
-   [what was implemented]
-   
-   Launching plan-task-reviewer...
+   => All Tasks Executed - Starting Batch Review
+
+   Tasks Completed: [N]
+   Files Changed: [list of all modified/created files]
+
+   Review Attempt: [1 or 2] of 2
+
+   Launching plan-task-reviewer to review entire implementation...
    ```
 
-   **Review Results:**
+   **Batch Review Results:**
    ```
    Review Verdict: [OK | NEEDS IMPROVEMENT]
-   
+
    [If OK]
-   ✅ Task [N] completed successfully
-   Moving to next task...
-   
-   [If NEEDS IMPROVEMENT]
-   ⚠️  Issues found, requesting fixes:
-   [list of issues]
-   
-   Re-launching plan-task-executor with feedback...
+   ✅ Implementation approved
+   Proceeding to commit...
+
+   [If NEEDS IMPROVEMENT - Attempt 1]
+   ⚠️  Issues found in implementation (Attempt 1 of 2):
+   [consolidated list of all issues across all tasks]
+
+   Launching plan-task-executor to fix all issues...
+
+   [After fixes applied]
+   => Re-reviewing implementation (Attempt 2 of 2 - FINAL)
+
+   [If NEEDS IMPROVEMENT - Attempt 2 (Final)]
+   ⚠️  Issues remain after final review (Attempt 2 of 2):
+   [list of remaining issues]
+
+   ⚠️  Maximum review attempts (2) reached
+   Accepting implementation and proceeding to commit
+   (Quality issues logged for future reference)
    ```
 
-6. **Error Handling:**
+7. **Error Handling:**
 
    **Missing Plan:**
    - Show helpful error message
@@ -168,15 +221,15 @@ $ARGUMENTS
    **Review Failures:**
    - Handle reviewer agent errors gracefully
    - Fall back to basic quality checks
-   - Continue with next task if possible
+   - Accept implementation and proceed to commit if review cannot complete
 
-7. **Progress Tracking:**
+8. **Progress Tracking:**
 
    **Task Status Updates:**
    Track progress by updating task status using cc-plan commands throughout execution:
    - `pending` → `in-progress` when task execution begins
-   - `in-progress` → `completed` when task passes review
-   - Status remains `in-progress` during revision cycles
+   - `in-progress` → `completed` immediately after task execution finishes
+   - All tasks marked complete before batch review begins
 
    Valid statuses: `pending`, `in-progress`, `completed`
 
@@ -254,9 +307,9 @@ $ARGUMENTS
    3. Review committed changes
    ```
 
-8. **Agent Communication Protocol:**
+9. **Agent Communication Protocol:**
 
-   **To plan-task-executor:**
+   **To plan-task-executor (Task Execution Phase):**
    ```
    Execute the following task from the cc-plan plan:
 
@@ -272,40 +325,74 @@ $ARGUMENTS
    Impacts: [content from <Impacts> element if provided]
    Test Strategy: [content from <TestStrategy> element if provided]
 
-   [If revision cycle]
-   Previous Implementation Issues:
-   [reviewer feedback with specific fixes needed]
-
    Please implement this task following all project standards.
+   Note: This will be reviewed later as part of a batch review of all tasks.
    ```
 
-   **To plan-task-reviewer:**
+   **To plan-task-executor (Bulk Fix Phase):**
    ```
-   Review the following task implementation:
+   Fix the following issues found during batch review of the plan implementation:
 
-   Task ID: [task-id from XML]
+   Review Attempt: [1 or 2] of 2
+   Total Tasks Executed: [N]
+
+   Issues to Address:
+   [Consolidated reviewer feedback covering all tasks and files]
+
+   All Tasks Summary:
+   - Task [ID]: [Title] - [File Target]
+   - Task [ID]: [Title] - [File Target]
+   ...
+
+   Files Changed:
+   [List of all modified/created files]
+
+   Please address all identified issues systematically across the entire implementation.
+   [If attempt 2: This is the FINAL fix attempt before commit.]
+   ```
+
+   **To plan-task-reviewer (Batch Review):**
+   ```
+   Review the complete plan implementation across all tasks:
+
+   Plan: [Plan Title]
+   Total Tasks Executed: [N]
+   Review Attempt: [1 or 2] of 2 maximum attempts
+
+   All Tasks Summary:
+   ---
+   Task ID: [task-id-1]
    Task Title: [title from <Title> element]
    Expected What: [content from <What> element]
    Expected Why: [content from <Why> element]
    Target File: [path from <File> element]
-   Command: [command from <Command> element if applicable]
    Task Type: [type from <Type> element]
    Expected Diff: [content from <Diff> CDATA section if provided]
-   Expected Impacts: [content from <Impacts> element if provided]
-   Test Strategy: [content from <TestStrategy> element if provided]
+   ---
+   Task ID: [task-id-2]
+   Task Title: [title from <Title> element]
+   Expected What: [content from <What> element]
+   ...
+   [repeat for all tasks]
+   ---
 
-   Implementation Details:
-   [what was implemented by the executor]
+   Complete Implementation Changes:
+   Files Modified/Created: [complete list]
 
-   Files Changed:
-   [list of modified/created files]
+   Full Git Diff:
+   [complete git diff output showing all changes]
 
-   Please provide a thorough quality review following your standards.
-   Validate that the implementation matches the Expected Diff if provided.
-   Ensure Test Strategy is followed if specified.
+   Please provide a comprehensive quality review of the entire implementation:
+   - Verify each task's requirements are met
+   - Check integration and consistency between tasks
+   - Validate code quality, security, and performance across all changes
+   - Ensure all Expected Diffs are matched and Test Strategies followed
+
+   IMPORTANT: This is review attempt [1 or 2] of 2 maximum.
+   [If attempt 2: This is your FINAL review attempt. Focus on critical issues that must be addressed. Accept minor issues if core functionality is sound.]
    ```
 
-9. **Usage Examples:**
+10. **Usage Examples:**
 
    **Execute entire plan:**
    `/plan-execute`
@@ -322,10 +409,11 @@ $ARGUMENTS
 ## Key Features
 
 - **Automated Task Management:** Handles task sequencing and dependencies
-- **Quality Assurance:** Ensures every task meets standards before proceeding
+- **Efficient Batch Processing:** Execute all tasks first, then review holistically for faster completion
+- **Comprehensive Quality Review:** Reviews entire implementation as a cohesive whole, checking integration between tasks
+- **Two-Attempt Review Cycle:** Maximum 2 review attempts on complete implementation, then proceeds to commit
 - **Progress Visibility:** Real-time status updates and progress tracking
 - **Error Recovery:** Graceful handling of failures with recovery strategies
-- **Iterative Improvement:** Automatic revision cycles until quality standards are met
 - **Automatic Commits:** Commits all changes with plan name prefix for traceability
 
 Remember: Always respond in English and coordinate agents effectively to deliver high-quality implementations.

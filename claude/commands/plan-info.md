@@ -1,7 +1,7 @@
 ---
 description: Display current session plan information and answer questions about the plan and tasks
 allowed-tools: Bash(cc-plan:*), Read
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Plan Information Command

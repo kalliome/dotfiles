@@ -1,7 +1,7 @@
 ---
 description: Research and investigate potential implementation plans by exploring high-level milestones and detailed investigation
 allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(cc-plan:*)
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Research Mode: UltraThink Research Command

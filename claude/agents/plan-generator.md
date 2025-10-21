@@ -1,7 +1,7 @@
 ---
 name: plan-generator
 description: Generates comprehensive implementation plans from research context and user requirements
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 color: green
 tools: [Read, Glob, Grep, WebFetch, Bash]
 ---

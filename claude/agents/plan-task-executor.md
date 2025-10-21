@@ -1,7 +1,7 @@
 ---
 name: plan-task-executor
 description: Execute specific tasks from cc-plan plans with professional implementation standards. This agent is designed to work with the plan-execute orchestrator and plan-task-reviewer. It implements individual tasks, handles feedback loops, and delivers production-ready code that integrates seamlessly with existing systems.
-model: sonnet
+model: claude-sonnet-4-5-20250929
 color: yellow
 ---
 

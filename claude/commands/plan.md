@@ -1,7 +1,7 @@
 ---
 description: Plan and analyze prompts by generating detailed implementation plans and saving them with cc-plan
 allowed-tools: Read, Glob, Grep, Bash(pwd:*), Bash(ls:*), WebFetch, Bash(cc-plan:*), Task
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Planning Mode: Plan Command

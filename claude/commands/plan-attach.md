@@ -1,7 +1,7 @@
 ---
 description: Attach current Claude Code session to a cc-plan plan for coordinated project work
 allowed-tools: Bash(cc-plan:*), Bash(pwd:*)
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Plan Attach Command

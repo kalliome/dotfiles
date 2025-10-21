@@ -2,7 +2,7 @@
 name: plan-task-reviewer
 description: Review implementations from plan-task-executor against quality standards and provide structured feedback. This agent works as part of the plan-execute workflow to ensure all implementations meet professional standards before task completion. Returns either OK verdict or detailed improvement requirements.
 tools: Glob, Grep, mcp__acp__read, WebFetch, TodoWrite, WebSearch, mcp__acp__BashOutput, KillShell
-model: sonnet
+model: claude-sonnet-4-5-20250929
 color: purple
 ---
 

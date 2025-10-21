@@ -1,7 +1,7 @@
 ---
 description: Orchestrate task-by-task execution of cc-plan plans using specialized agents
 allowed-tools: Bash(cc-plan:*), Task
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Plan Execution Orchestrator

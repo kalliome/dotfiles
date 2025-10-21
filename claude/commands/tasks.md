@@ -1,7 +1,7 @@
 ---
 description: List tasks from the current session's plan with their statuses
 allowed-tools: Bash(cc-plan:*)
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 ---
 
 # Tasks Command

@@ -78,7 +78,7 @@ alias vim='nvim'
 
 # Zellij
 alias zn='zellij'
-alias z='zellij attach'
+alias z='zellij attach -c main'
 alias zl='zellij list-sessions'
 
 # Config management

@@ -578,3 +578,12 @@ show_startup_tips false
 // can be useful for removing wrappers around commands
 // Note: be sure to escape backslashes and similar characters properly
 // post_command_discovery_hook "echo $RESURRECT_COMMAND | sed <your_regex_here>"
+
+// This removes the green/colored borders around panes
+pane_frames false
+
+// This makes the UI more compact
+simplified_ui true
+
+// This keeps the session from closing if you accidentally hit Ctrl+D
+on_force_close "detach"

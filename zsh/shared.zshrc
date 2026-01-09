@@ -49,7 +49,7 @@ alias g="lazygit"
 alias sshpub="cat ~/.ssh/id_rsa.pub"
 alias myip="curl -s https://api.ipify.org"
 alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'
-alias do="doctl"
+alias doct="doctl"
 alias zz="zed ."
 alias c.="cursor ."
 

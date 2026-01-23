@@ -1,2 +1,2 @@
-# Disable line numbers while keeping other features
---style=changes,grid,header,snip
+# Disable line numbers and grid borders for cleaner output
+--style=changes,header,snip

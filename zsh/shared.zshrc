@@ -113,23 +113,6 @@ function load-config() {
 }
 alias lc='load-config'
 
-# Dev function - cd to ~/dev with optional subdirectory
-dev() {
-    local dev_dir="$HOME/dev"
-
-    # Create ~/dev if it doesn't exist
-    if [[ ! -d "$dev_dir" ]]; then
-        mkdir -p "$dev_dir"
-    fi
-
-    if [[ $# -eq 0 ]]; then
-        # No arguments - just cd to ~/dev
-        cd "$dev_dir"
-    else
-        # Arguments provided - cd to ~/dev/argument
-        cd "$dev_dir/$1"
-    fi
-}
 
 # Autocomplete function for dev command
 _dev_complete() {
@@ -154,6 +137,9 @@ function y() {
     [ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
     rm -f -- "$tmp"
 }
+
+# Source additional configurations
+source ~/dotfiles/zsh/aws.zshrc
 
 # Environment variables
 export NODE_NO_WARNINGS=1

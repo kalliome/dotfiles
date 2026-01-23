@@ -145,11 +145,8 @@ keybinds clear-defaults=true {
         bind "Ctrl [" { PreviousSwapLayout; }
         bind "Ctrl ]" { NextSwapLayout; }
         bind "Ctrl f" { ToggleFloatingPanes; }
-        bind "Ctrl h" { MoveFocusOrTab "left"; }
+        // Ctrl h/j/k/l are handled by zellij-nav.nvim for seamless Neovim integration
         bind "Ctrl i" { MoveTab "left"; }
-        bind "Ctrl j" { MoveFocus "down"; }
-        bind "Ctrl k" { MoveFocus "up"; }
-        bind "Ctrl l" { MoveFocusOrTab "right"; }
         bind "Ctrl n" { NewPane; }
         bind "Ctrl o" { MoveTab "right"; }
     }
@@ -280,14 +277,12 @@ keybinds clear-defaults=true {
         bind "c" { NewTab; SwitchToMode "normal"; }
         bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
-        bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "l" { MoveFocus "right"; SwitchToMode "normal"; }
         bind "n" { GoToNextTab; SwitchToMode "normal"; }
         bind "o" { FocusNextPane; }
         bind "p" { GoToPreviousTab; SwitchToMode "normal"; }
         bind "q" { CloseFocus; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "resize"; }
-        bind "s" { SwitchToMode "session"; }
         bind "w" {
             LaunchOrFocusPlugin "session-manager" {
                 floating true
@@ -297,6 +292,10 @@ keybinds clear-defaults=true {
         }
         bind "z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
         bind "|" { NewPane "right"; SwitchToMode "normal"; }
+        bind "s" { NewPane "stacked"; SwitchToMode "normal"; }
+        bind "a" { Run "claude"; SwitchToMode "normal"; }
+        bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
+        bind "x" { CloseFocus; SwitchToMode "normal"; }
         bind "§" { SwitchToMode "normal"; }
     }
 }

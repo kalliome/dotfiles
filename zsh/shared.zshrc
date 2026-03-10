@@ -98,6 +98,112 @@ alias tw='gittower .'
 alias cl='claude'
 alias cly='claude --dangerously-skip-permissions'
 
+# Claude Code commit helper - interactive with confirmation
+commit() {
+  # Stage all changes
+  git add -A
+
+  # Check if there are staged changes
+  if git diff --staged --quiet; then
+    echo "No changes to commit."
+    return 0
+  fi
+
+  # Show summary of changes
+  echo "Changes:"
+  git --no-pager diff --staged --stat | sed 's/^/  /'
+  echo ""
+
+  # Generate commit message using Claude
+  echo "Generating message..."
+  local raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>/dev/null)
+
+  # Strip any preamble before the conventional commit type
+  local msg=$(echo "$raw" | sed -n '/^\(feat\|fix\|docs\|style\|refactor\|perf\|test\|chore\|ci\|build\|revert\)[:(]/,$p')
+
+  if [[ -z "$msg" ]]; then
+    echo "Failed to generate commit message."
+    return 1
+  fi
+
+  echo "Message:"
+  echo "$msg" | sed 's/^/  /'
+  echo ""
+
+  # Ask for confirmation
+  read "confirm?Commit? [y/N] "
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    git commit -m "$msg"
+  else
+    echo "Commit cancelled."
+    git reset HEAD >/dev/null 2>&1
+  fi
+}
+
+# Claude Code PR helper - interactive with confirmation
+create-pr() {
+  # Get current branch
+  local branch=$(git branch --show-current)
+  local base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+  base=${base:-main}
+
+  # Check we're not on base branch
+  if [[ "$branch" == "$base" || "$branch" == "main" || "$branch" == "master" ]]; then
+    echo "Cannot create PR from $branch branch."
+    return 1
+  fi
+
+  # Push branch if needed
+  if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+    echo "Pushing branch..."
+    git push -u origin "$branch" || return 1
+    echo ""
+  fi
+
+  # Show commits in this PR
+  echo "Commits:"
+  git --no-pager log --oneline "$base".."$branch" | sed 's/^/  /'
+  echo ""
+
+  # Show file changes
+  echo "Files changed:"
+  git --no-pager diff --stat "$base".."$branch" | sed 's/^/  /'
+  echo ""
+
+  # Generate PR title and body with Claude
+  echo "Generating PR description..."
+  local pr_content=$(claude --print -p "Generate a GitHub PR title and body for the commits on this branch. Format:
+TITLE: <short descriptive title>
+BODY:
+<markdown body with summary and key changes>
+
+Output ONLY in this exact format. No preamble, no explanation." 2>/dev/null)
+
+  # Parse title and body
+  local title=$(echo "$pr_content" | sed -n 's/^TITLE: //p' | head -1)
+  local body=$(echo "$pr_content" | sed -n '/^BODY:/,$p' | tail -n +2)
+
+  if [[ -z "$title" ]]; then
+    echo "Failed to generate PR description."
+    return 1
+  fi
+
+  echo "Title:"
+  echo "  $title"
+  echo ""
+  echo "Body:"
+  echo "$body" | sed 's/^/  /'
+  echo ""
+
+  # Ask for confirmation
+  read "confirm?Create PR? [y/N] "
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    gh pr create --title "$title" --body "$body" --base "$base"
+  else
+    echo "PR cancelled."
+  fi
+}
+
 # Task Master
 alias tm='task-master'
 alias taskmaster='task-master'
@@ -140,6 +246,8 @@ function y() {
 
 # Source additional configurations
 source ~/dotfiles/zsh/aws.zshrc
+source ~/dotfiles/zsh/port.zshrc
+source ~/dotfiles/zsh/cw.zshrc
 
 # Environment variables
 export NODE_NO_WARNINGS=1

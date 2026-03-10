@@ -1,0 +1,17 @@
+customCommands:
+  - key: "M"
+    context: "files"
+    description: "Generate commit message with Claude Code"
+    command: |
+      msg=$(git diff --staged | claude -p "Generate a concise git commit message for these staged changes. Output ONLY the commit message, nothing else. Use conventional commit format (type: description). Keep the first line under 72 characters.") && git commit -m "$msg" --edit
+    output: terminal
+keybinding:
+  universal:
+    prevTab: 'ö'
+    nextTab: 'ä'
+gui:
+  expandedSidePanelWeight: 1
+git:
+  paging:
+    pager: delta --dark --paging=never
+    colorArg: always

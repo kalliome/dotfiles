@@ -5,6 +5,8 @@
 keybinds clear-defaults=true {
     normal {
         bind "§" { SwitchToMode "tmux"; }
+        bind "F7" { HalfPageScrollUp; }
+        bind "F8" { HalfPageScrollDown; }
     }
     locked {
         bind "Alt g" { SwitchToMode "normal"; }
@@ -142,13 +144,11 @@ keybinds clear-defaults=true {
         bind "Ctrl +" { Resize "Increase"; }
         bind "Ctrl -" { Resize "Decrease"; }
         bind "Ctrl =" { Resize "Increase"; }
-        bind "Ctrl [" { PreviousSwapLayout; }
-        bind "Ctrl ]" { NextSwapLayout; }
+        bind "Ctrl ö" { PreviousSwapLayout; }
+        bind "Ctrl ä" { NextSwapLayout; }
         bind "Ctrl f" { ToggleFloatingPanes; }
         // Ctrl h/j/k/l are handled by zellij-nav.nvim for seamless Neovim integration
-        bind "Ctrl i" { MoveTab "left"; }
         bind "Ctrl n" { NewPane; }
-        bind "Ctrl o" { MoveTab "right"; }
     }
     shared_except "locked" {
         bind "Alt Shift p" { ToggleGroupMarking; }
@@ -186,10 +186,9 @@ keybinds clear-defaults=true {
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
         bind "Alt =" { Resize "Increase"; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt ]" { NextSwapLayout; }
+        bind "Alt ö" { PreviousSwapLayout; }
+        bind "Alt ä" { NextSwapLayout; }
         bind "Alt f" { ToggleFloatingPanes; }
-        bind "Alt i" { MoveTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
         bind "Alt k" { MoveFocus "up"; }
         bind "Alt l" { MoveFocusOrTab "right"; }
@@ -241,7 +240,6 @@ keybinds clear-defaults=true {
         bind "Ctrl n" { SwitchToMode "resize"; }
         bind "Alt n" { NewPane; }
         bind "Ctrl o" { SwitchToMode "session"; }
-        bind "Alt o" { MoveTab "right"; }
         bind "Ctrl p" { SwitchToMode "pane"; }
         bind "Alt p" { TogglePaneInGroup; }
         bind "Ctrl q" { Quit; }
@@ -272,12 +270,15 @@ keybinds clear-defaults=true {
         bind "-" { NewPane "down"; SwitchToMode "normal"; }
         bind "?" { SwitchToMode "normal"; }
         bind "[" { SwitchToMode "scroll"; }
+        bind "u" { SwitchToMode "scroll"; HalfPageScrollUp; }
         bind "b" { GoToPreviousTab; SwitchToMode "normal"; }
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
         bind "c" { NewTab; SwitchToMode "normal"; }
-        bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
+        bind "h" { GoToPreviousTab; SwitchToMode "normal"; }
+        bind "H" { MoveTab "left"; }
+        bind "L" { MoveTab "right"; }
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
-        bind "l" { MoveFocus "right"; SwitchToMode "normal"; }
+        bind "l" { GoToNextTab; SwitchToMode "normal"; }
         bind "n" { GoToNextTab; SwitchToMode "normal"; }
         bind "o" { FocusNextPane; }
         bind "p" { GoToPreviousTab; SwitchToMode "normal"; }
@@ -356,8 +357,8 @@ default_mode "normal"
  
 // The name of the default layout to load on startup
 // Default: "default"
-// 
-// default_layout "compact"
+//
+default_layout "tabs-only"
  
 // The folder in which Zellij will look for layouts
 // (Requires restart)

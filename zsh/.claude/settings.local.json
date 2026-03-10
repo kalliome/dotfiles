@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/tkallio/**)",
+      "Bash(ls -la /home/tkallio/dotfiles/zsh/ | grep -E '\\\\.\\(zshrc|sh\\)$')"
+    ]
+  }
+}

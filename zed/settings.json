@@ -7,21 +7,34 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "git_panel": {
+    "sort_by_path": true,
+    "tree_view": true
+  },
   "ssh_connections": [
     {
       "host": "mini",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "d",
+      "args": [],
+      "projects": []
+    },
+    {
+      "host": "dev",
+      "args": [],
       "projects": [
         {
-          "paths": ["/Users/tkallio"]
+          "paths": [
+            "/mnt/dev/clevenio-core"
+          ]
         },
         {
-          "paths": ["/Users/tkallio/dev/clevenio-core"]
-        },
-        {
-          "paths": ["/Users/tkallio/dev/trustmary"]
-        },
-        {
-          "paths": ["/Users/tkallio/wp/trustmary/wp-content/themes/trustmary"]
+          "paths": [
+            "/mnt/dev/trustmary"
+          ]
         }
       ]
     }
@@ -59,8 +72,8 @@
       "model": "gpt-5"
     }
   },
-  "ui_font_size": 14,
-  "buffer_font_size": 13,
+  "ui_font_size": 16.0,
+  "buffer_font_size": 13.0,
   "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "terminal": {
     "line_height": "standard",

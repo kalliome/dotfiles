@@ -142,6 +142,11 @@ commit() {
 
 # Claude Code PR helper - interactive with confirmation
 create-pr() {
+  local draft=false
+  if [[ "$1" == "--draft" || "$1" == "-d" ]]; then
+    draft=true
+  fi
+
   # Get current branch
   local branch=$(git branch --show-current)
   local base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
@@ -196,9 +201,16 @@ Output ONLY in this exact format. No preamble, no explanation." 2>/dev/null)
   echo ""
 
   # Ask for confirmation
-  read "confirm?Create PR? [y/N] "
+  local draft_label=""
+  local draft_flag=""
+  if [[ "$draft" == true ]]; then
+    draft_label=" (draft)"
+    draft_flag="--draft"
+  fi
+
+  read "confirm?Create${draft_label} PR? [y/N] "
   if [[ "$confirm" =~ ^[Yy]$ ]]; then
-    gh pr create --title "$title" --body "$body" --base "$base"
+    gh pr create --title "$title" --body "$body" --base "$base" $draft_flag
   else
     echo "PR cancelled."
   fi

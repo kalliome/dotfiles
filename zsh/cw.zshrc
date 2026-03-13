@@ -7,6 +7,7 @@
 #   cls            # Launch Claude Code in a sandbox from the current directory
 #   cwp            # Cherry-pick new commits from all worktree branches into current branch
 #   cwm            # Move uncommitted changes from main checkout into current worktree
+#   cwr            # Reset current branch to origin (undo cwp cherry-picks)
 #   cwc            # Clean up worktrees that are fully pushed and have no uncommitted changes
 #
 # Requirements:
@@ -242,6 +243,47 @@ cwp() {
         echo "Restoring stashed changes..."
         git stash pop &>/dev/null
     fi
+}
+
+# Reset current branch to origin (undo cwp cherry-picks)
+# -------------------------------------------------------
+# Stashes uncommitted changes, resets hard to origin, then restores the stash.
+# Useful after `cwp` to get back to a clean state.
+#
+# Examples:
+#   cwr    # Reset current branch to origin
+cwr() {
+    if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        echo "Error: not inside a git repository"
+        return 1
+    fi
+
+    local current_branch
+    current_branch=$(git branch --show-current)
+    if [[ -z "$current_branch" ]]; then
+        echo "Error: HEAD is detached, checkout a branch first"
+        return 1
+    fi
+
+    # Stash uncommitted changes
+    local stashed=false
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo "Stashing uncommitted changes..."
+        git stash push -m "cwr: auto-stash before reset" &>/dev/null
+        stashed=true
+    fi
+
+    echo "Resetting $current_branch to origin/$current_branch..."
+    git fetch origin &>/dev/null
+    git reset --hard "origin/$current_branch"
+
+    # Restore stashed changes
+    if [[ "$stashed" == true ]]; then
+        echo "Restoring stashed changes..."
+        git stash pop &>/dev/null
+    fi
+
+    echo "Done."
 }
 
 # Move uncommitted changes from main checkout into current worktree

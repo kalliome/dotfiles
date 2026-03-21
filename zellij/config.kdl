@@ -268,7 +268,12 @@ keybinds clear-defaults=true {
         bind "%" { NewPane "right"; SwitchToMode "normal"; }
         bind "," { SwitchToMode "renametab"; }
         bind "-" { NewPane "down"; SwitchToMode "normal"; }
-        bind "?" { SwitchToMode "normal"; }
+        bind "?" {
+            Run "bash" "-c" "zellij setup --dump-config 2>/dev/null | sed -n '/^    tmux {$/,/^    }/p' | grep bind | sed 's/.*bind //' | sort | less" {
+                floating true
+            }
+            SwitchToMode "normal"
+        }
         bind "[" { SwitchToMode "scroll"; }
         bind "u" { SwitchToMode "scroll"; HalfPageScrollUp; }
         bind "b" { GoToPreviousTab; SwitchToMode "normal"; }
@@ -295,6 +300,12 @@ keybinds clear-defaults=true {
         bind "|" { NewPane "right"; SwitchToMode "normal"; }
         bind "s" { NewPane "stacked"; SwitchToMode "normal"; }
         bind "a" { Run "claude"; SwitchToMode "normal"; }
+        bind "e" {
+            Run "node" "/Users/tkallio/dev/dev-server/bin/ds.js" {
+                floating true
+            }
+            SwitchToMode "normal"
+        }
         bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "x" { CloseFocus; SwitchToMode "normal"; }
         bind "§" { SwitchToMode "normal"; }

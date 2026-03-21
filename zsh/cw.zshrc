@@ -14,6 +14,186 @@
 #   - Claude Code CLI (claude)
 #   - Git
 #   - Zellij (optional, for pane naming)
+#   - firejail (Linux) or sandbox-exec (macOS) for filesystem sandboxing
+
+# Run claude under a platform-appropriate filesystem sandbox
+# ----------------------------------------------------------
+# Usage: _claude_sandboxed <repo_root> [claude args...]
+#
+# Linux  → firejail (whitelist mode)
+# Darwin → sandbox-exec (Seatbelt deny-default profile)
+# Other  → unsandboxed with warning
+_claude_sandbox_profile() {
+    local repo_root="$1"
+    local brew_prefix
+    brew_prefix="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+
+    cat <<SEATBELT
+(version 1)
+(deny default)
+
+;; Process management
+(allow process-fork process-exec signal)
+(allow mach-lookup)
+(allow ipc-posix-shm-read-data ipc-posix-shm-read-metadata ipc-posix-shm-write-data ipc-posix-shm-write-create ipc-posix-shm-write-unlink)
+(allow sysctl-read)
+
+;; System libraries and tools (read-only)
+(allow file-read* (subpath "/System"))
+(allow file-read* (subpath "/Library"))
+(allow file-read* (subpath "/usr"))
+(allow file-read* (subpath "/bin"))
+(allow file-read* file-write* file-ioctl (subpath "/dev"))
+(allow file-read* (subpath "/private/etc"))
+(allow file-read* (subpath "/private/var"))
+(allow file-read* (subpath "/var"))
+(allow file-read* (literal "/etc"))
+(allow file-read* (subpath "/etc"))
+(allow file-read* (literal "/"))
+
+;; Temp directories (read+write)
+(allow file-read* file-write* (subpath "/private/tmp"))
+(allow file-read* file-write* (subpath "/private/var/folders"))
+(allow file-read* file-write* (subpath "/tmp"))
+
+;; Homebrew (read-only)
+(allow file-read* (subpath "${brew_prefix}"))
+
+;; Claude binary (read-only)
+(allow file-read* (subpath "$HOME/.local/bin"))
+
+;; Claude config and cache (read+write)
+(allow file-read* file-write* (subpath "$HOME/.local/share/claude"))
+(allow file-read* file-write* (subpath "$HOME/.claude"))
+(allow file-read* file-write* (literal "$HOME/.claude.json"))
+(allow file-read* file-write* (subpath "$HOME/.cache/claude-cli-nodejs"))
+
+;; Bun cache (read+write — needed for bunx in status line)
+(allow file-read* file-write* (subpath "$HOME/.bun"))
+
+;; Keychain (read-only — needed for auth tokens)
+(allow file-read* (subpath "$HOME/Library/Keychains"))
+
+;; Git and SSH config (read-only — known_hosts for host verification, no private keys)
+(allow file-read* (literal "$HOME/.gitconfig"))
+(allow file-read* (subpath "$HOME/.config/git"))
+(allow file-read* file-write* (literal "$HOME/.ssh/known_hosts"))
+(allow file-read* (literal "$HOME/.ssh/config"))
+
+;; Project directory (read+write)
+(allow file-read* file-write* (subpath "${repo_root}"))
+
+;; Network (Claude API)
+(allow network-outbound)
+(allow network-bind (local ip "*:*"))
+(allow system-socket)
+SEATBELT
+}
+
+_claude_sandboxed() {
+    local repo_root="$1"
+    shift
+
+    case "$(uname -s)" in
+        Linux)
+            firejail --noprofile \
+                --whitelist="$HOME/.local/bin/claude" \
+                --whitelist="$HOME/.local/share/claude" \
+                --whitelist="$HOME/.claude" \
+                --whitelist="$HOME/.claude.json" \
+                --whitelist="$HOME/.cache/claude-cli-nodejs" \
+                --whitelist="$HOME/.gitconfig" \
+                --whitelist="$repo_root" \
+                --whitelist=/home/linuxbrew \
+                claude "$@"
+            ;;
+        Darwin)
+            local profile
+            profile="$(_claude_sandbox_profile "$repo_root")"
+            sandbox-exec -p "$profile" "$HOME/.local/bin/claude" "$@"
+            ;;
+        *)
+            echo "Warning: no sandbox available on $(uname -s), running claude unsandboxed" >&2
+            claude "$@"
+            ;;
+    esac
+}
+
+# Test the macOS sandbox profile
+# ---------------------------------------------------------------
+# Verifies that the Seatbelt profile correctly blocks access to
+# sensitive paths while allowing access to the project directory.
+#
+# Examples:
+#   cls-test          # Run sandbox tests against current repo
+cls-test() {
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        echo "cls-test only works on macOS (sandbox-exec)"
+        return 1
+    fi
+
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+        echo "Error: not inside a git repository"
+        return 1
+    fi
+
+    local profile
+    profile="$(_claude_sandbox_profile "$repo_root")"
+
+    local pass=0 fail=0
+
+    _cls_test() {
+        local description="$1" expect="$2"
+        shift 2
+        local output
+        output=$(sandbox-exec -p "$profile" "$@" 2>&1)
+        local rc=$?
+
+        if [[ "$expect" == "block" && $rc -ne 0 ]]; then
+            echo "  ✓ BLOCKED: $description"
+            ((pass++))
+        elif [[ "$expect" == "allow" && $rc -eq 0 ]]; then
+            echo "  ✓ ALLOWED: $description"
+            ((pass++))
+        elif [[ "$expect" == "block" && $rc -eq 0 ]]; then
+            echo "  ✗ NOT BLOCKED: $description"
+            ((fail++))
+        else
+            echo "  ✗ NOT ALLOWED: $description (rc=$rc)"
+            ((fail++))
+        fi
+    }
+
+    echo "Testing sandbox profile for: $repo_root"
+    echo ""
+
+    echo "Should BLOCK:"
+    _cls_test "read SSH private keys"   block /bin/cat "$HOME/.ssh/id_ed25519"
+    _cls_test "list ~/.ssh dir"         block /bin/ls "$HOME/.ssh"
+    _cls_test "read ~/.aws"             block /bin/ls "$HOME/.aws"
+    _cls_test "read ~/.zshrc"           block /bin/cat "$HOME/.zshrc"
+    _cls_test "read ~/Documents"        block /bin/ls "$HOME/Documents"
+    _cls_test "read ~/Desktop"          block /bin/ls "$HOME/Desktop"
+    _cls_test "write to home"           block /usr/bin/touch "$HOME/sandbox-test-$$"
+    _cls_test "write to .gitconfig"     block /bin/sh -c "echo x >> $HOME/.gitconfig"
+    echo ""
+
+    echo "Should ALLOW:"
+    _cls_test "read project dir"        allow /bin/ls "$repo_root"
+    _cls_test "read git config"         allow /bin/cat "$HOME/.gitconfig"
+    _cls_test "read /usr/bin"           allow /bin/ls /usr/bin
+    _cls_test "read homebrew"           allow /bin/ls "$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+    _cls_test "write to project"        allow /usr/bin/touch "$repo_root/.sandbox-test-$$"
+    # Clean up test file
+    rm -f "$repo_root/.sandbox-test-$$"
+    echo ""
+
+    echo "Results: $pass passed, $fail failed"
+    unset -f _cls_test
+    return $fail
+}
 
 # Launch Claude Code in a worktree with Zellij pane naming
 # ---------------------------------------------------------
@@ -43,21 +223,12 @@ cw() {
         return 1
     fi
 
-    firejail --noprofile \
-        --whitelist="$HOME/.local/bin/claude" \
-        --whitelist="$HOME/.local/share/claude" \
-        --whitelist="$HOME/.claude" \
-        --whitelist="$HOME/.claude.json" \
-        --whitelist="$HOME/.cache/claude-cli-nodejs" \
-        --whitelist="$HOME/.gitconfig" \
-        --whitelist="$repo_root" \
-        --whitelist=/home/linuxbrew \
-        claude --worktree "$branch" --dangerously-skip-permissions
+    _claude_sandboxed "$repo_root" --worktree "$branch" --dangerously-skip-permissions
 }
 
 # Launch Claude Code in a sandbox from the current directory
 # ---------------------------------------------------------
-# Like `cw` but without worktree management — runs Claude in a firejail
+# Like `cw` but without worktree management — runs Claude in a
 # sandbox using the current repo, with permission bypass enabled.
 #
 # Examples:
@@ -75,16 +246,7 @@ cls() {
         zellij action rename-pane "${repo_root:t}"
     fi
 
-    firejail --noprofile \
-        --whitelist="$HOME/.local/bin/claude" \
-        --whitelist="$HOME/.local/share/claude" \
-        --whitelist="$HOME/.claude" \
-        --whitelist="$HOME/.claude.json" \
-        --whitelist="$HOME/.cache/claude-cli-nodejs" \
-        --whitelist="$HOME/.gitconfig" \
-        --whitelist="$repo_root" \
-        --whitelist=/home/linuxbrew \
-        claude --dangerously-skip-permissions
+    _claude_sandboxed "$repo_root" --dangerously-skip-permissions
 }
 
 # Cherry-pick new commits from all worktree branches into current branch

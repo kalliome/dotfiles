@@ -12,6 +12,6 @@ keybinding:
 gui:
   expandedSidePanelWeight: 1
 git:
-  paging:
-    pager: delta --dark --paging=never
-    colorArg: always
+  pagers:
+    - pager: delta --dark --paging=never
+      colorArg: always

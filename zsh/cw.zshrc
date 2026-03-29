@@ -28,6 +28,22 @@ _claude_sandbox_profile() {
     local brew_prefix
     brew_prefix="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
 
+    # Build read rules for intermediate dirs between $HOME and repo_root
+    # so the sandbox can traverse the path (e.g. ~/clients/foo/repo)
+    local traverse_rules=""
+    if [[ "$repo_root" == "$HOME"/* ]]; then
+        local rel="${repo_root#$HOME/}"
+        local -a parts=("${(@s:/:)rel}")
+        if (( ${#parts[@]} > 1 )); then
+            local current="$HOME"
+            local i
+            for i in {1..$((${#parts[@]} - 1))}; do
+                current="$current/${parts[$i]}"
+                traverse_rules+=$'\n'"(allow file-read* (literal \"$current\"))"
+            done
+        fi
+    fi
+
     cat <<SEATBELT
 (version 1)
 (deny default)
@@ -50,6 +66,8 @@ _claude_sandbox_profile() {
 (allow file-read* (literal "/etc"))
 (allow file-read* (subpath "/etc"))
 (allow file-read* (literal "/"))
+(allow file-read* (literal "/private"))
+(allow file-read* (literal "/Users"))
 
 ;; Temp directories (read+write)
 (allow file-read* file-write* (subpath "/private/tmp"))
@@ -58,6 +76,9 @@ _claude_sandbox_profile() {
 
 ;; Homebrew (read-only)
 (allow file-read* (subpath "${brew_prefix}"))
+
+;; Home directory listing (needed for bunx cwd resolution)
+(allow file-read* (literal "$HOME"))
 
 ;; Claude binary (read-only)
 (allow file-read* (subpath "$HOME/.local/bin"))
@@ -71,6 +92,9 @@ _claude_sandbox_profile() {
 ;; Bun cache (read+write — needed for bunx in status line)
 (allow file-read* file-write* (subpath "$HOME/.bun"))
 
+;; ccstatusline config (read+write)
+(allow file-read* file-write* (subpath "$HOME/.config/ccstatusline"))
+
 ;; Keychain (read-only — needed for auth tokens)
 (allow file-read* (subpath "$HOME/Library/Keychains"))
 
@@ -80,7 +104,8 @@ _claude_sandbox_profile() {
 (allow file-read* file-write* (literal "$HOME/.ssh/known_hosts"))
 (allow file-read* (literal "$HOME/.ssh/config"))
 
-;; Project directory (read+write)
+;; Project directory (read+write — includes parent dir traversal)
+${traverse_rules}
 (allow file-read* file-write* (subpath "${repo_root}"))
 
 ;; Network (Claude API)

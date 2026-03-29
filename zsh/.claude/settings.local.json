@@ -4,7 +4,16 @@
       "Read(//home/tkallio/**)",
       "Bash(ls -la /home/tkallio/dotfiles/zsh/ | grep -E '\\\\.\\(zshrc|sh\\)$')",
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
-      "mcp__plugin_context-mode_context-mode__ctx_execute_file"
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+      "Read(//Users/tkallio/.bun/bin/**)",
+      "Read(//Users/tkallio/.cache/**)",
+      "Read(//Users/tkallio/dotfiles/**)",
+      "Bash(source /Users/tkallio/dotfiles/zsh/cw.zshrc)",
+      "Bash('repo_root=$\\(git rev-parse:*)",
+      "Bash('profile=$\\(_claude_sandbox_profile $repo_root\\)')",
+      "Bash('log_profile=\\(version 1\\)\\(deny default\\)\\(debug deny\\)\\(allow default\\)')",
+      "Bash(repo_root=/Users/tkallio/clients/clevenio/clevenio-core)",
+      "Bash(echo $profile)"
     ]
   }
 }

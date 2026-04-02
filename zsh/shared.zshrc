@@ -116,15 +116,28 @@ commit() {
 
   # Generate commit message using Claude
   echo "Generating message..."
-  local raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>/dev/null)
+  local raw stderr_output
+  stderr_output=$(mktemp)
+  raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>"$stderr_output")
+  local rc=$?
 
-  # Strip any preamble before the conventional commit type
-  local msg=$(echo "$raw" | sed -n '/^\(feat\|fix\|docs\|style\|refactor\|perf\|test\|chore\|ci\|build\|revert\)[:(]/,$p')
+  # Strip ANSI codes, then extract from first conventional commit type
+  raw=$(echo "$raw" | sed $'s/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/^[[:space:]]*//' | tr '[:upper:]' '[:lower:]')
+  local msg=$(echo "$raw" | sed -nE '/^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)[:(]/,$p')
 
   if [[ -z "$msg" ]]; then
     echo "Failed to generate commit message."
+    if [[ $rc -ne 0 ]]; then
+      echo "Claude exited with code $rc:"
+      sed 's/^/  /' "$stderr_output"
+    elif [[ -n "$raw" ]]; then
+      echo "Claude output did not match conventional commit format:"
+      echo "$raw" | head -5 | sed 's/^/  /'
+    fi
+    rm -f "$stderr_output"
     return 1
   fi
+  rm -f "$stderr_output"
 
   echo "Message:"
   echo "$msg" | sed 's/^/  /'

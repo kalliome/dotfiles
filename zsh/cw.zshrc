@@ -28,6 +28,16 @@ _claude_sandbox_profile() {
     local brew_prefix
     brew_prefix="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
 
+    # Allow real paths of symlinked files in ~/.claude (e.g. CLAUDE.md → dotfiles)
+    # sandbox-exec resolves symlinks, so targets outside ~/.claude need explicit rules.
+    local symlink_rules="" _link _rpath
+    for _link in "$HOME/.claude/"*(N@); do
+        _rpath=$(realpath "$_link" 2>/dev/null)
+        if [[ -n "$_rpath" && "$_rpath" != "$HOME/.claude/"* ]]; then
+            symlink_rules+=$'\n'"(allow file-read* (literal \"${_rpath}\"))"
+        fi
+    done
+
     # Build read rules for intermediate dirs between $HOME and repo_root
     # so the sandbox can traverse the path (e.g. ~/clients/foo/repo)
     local traverse_rules=""
@@ -74,7 +84,8 @@ _claude_sandbox_profile() {
 (allow file-read* file-write* (subpath "/private/var/folders"))
 (allow file-read* file-write* (subpath "/tmp"))
 
-;; Homebrew (read-only)
+;; Homebrew (read-only, /opt literal needed for path traversal)
+(allow file-read* (literal "/opt"))
 (allow file-read* (subpath "${brew_prefix}"))
 
 ;; Home directory listing (needed for bunx cwd resolution)
@@ -87,10 +98,14 @@ _claude_sandbox_profile() {
 (allow file-read* file-write* (subpath "$HOME/.local/share/claude"))
 (allow file-read* file-write* (subpath "$HOME/.claude"))
 (allow file-read* file-write* (literal "$HOME/.claude.json"))
+${symlink_rules}
 (allow file-read* file-write* (subpath "$HOME/.cache/claude-cli-nodejs"))
 
 ;; Bun cache (read+write — needed for bunx in status line)
 (allow file-read* file-write* (subpath "$HOME/.bun"))
+
+;; npm cache (read+write — needed for npm install)
+(allow file-read* file-write* (subpath "$HOME/.npm"))
 
 ;; ccstatusline config (read+write)
 (allow file-read* file-write* (subpath "$HOME/.config/ccstatusline"))
@@ -576,7 +591,7 @@ cwm() {
     echo "Generating message..."
     local raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>/dev/null)
 
-    local msg=$(echo "$raw" | sed -n '/^\(feat\|fix\|docs\|style\|refactor\|perf\|test\|chore\|ci\|build\|revert\)[:(]/,$p')
+    local msg=$(echo "$raw" | sed -nE '/^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)[:(]/,$p')
 
     if [[ -z "$msg" ]]; then
         msg="chore: move uncommitted changes from main"

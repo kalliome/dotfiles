@@ -276,7 +276,6 @@ keybinds clear-defaults=true {
         }
         bind "[" { SwitchToMode "scroll"; }
         bind "u" { SwitchToMode "scroll"; HalfPageScrollUp; }
-        bind "b" { GoToPreviousTab; SwitchToMode "normal"; }
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
         bind "c" { NewTab; SwitchToMode "normal"; }
         bind "h" { GoToPreviousTab; SwitchToMode "normal"; }
@@ -284,9 +283,7 @@ keybinds clear-defaults=true {
         bind "L" { MoveTab "right"; }
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
         bind "l" { GoToNextTab; SwitchToMode "normal"; }
-        bind "n" { GoToNextTab; SwitchToMode "normal"; }
         bind "o" { FocusNextPane; }
-        bind "p" { GoToPreviousTab; SwitchToMode "normal"; }
         bind "q" { CloseFocus; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "resize"; }
         bind "w" {
@@ -309,6 +306,24 @@ keybinds clear-defaults=true {
         bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "x" { CloseFocus; SwitchToMode "normal"; }
         bind "§" { SwitchToMode "normal"; }
+        bind "0" {
+            Run "zellij" "pipe" "--plugin" "file:/Users/tkallio/dotfiles/zellij/plugins/zellij-switch.wasm" "--" "--session main" {
+                close_on_exit true
+            }
+            SwitchToMode "normal"
+        }
+        bind "9" {
+            Run "zellij" "pipe" "--plugin" "file:/Users/tkallio/dotfiles/zellij/plugins/zellij-switch.wasm" "--" "--session clevenio" {
+                close_on_exit true
+            }
+            SwitchToMode "normal"
+        }
+        bind "8" {
+            Run "zellij" "pipe" "--plugin" "file:/Users/tkallio/dotfiles/zellij/plugins/zellij-switch.wasm" "--" "--session trustmary" {
+                close_on_exit true
+            }
+            SwitchToMode "normal"
+        }
     }
 }
 

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(zellij action:*)",
+      "Bash(zellij setup:*)"
+    ]
+  }
+}

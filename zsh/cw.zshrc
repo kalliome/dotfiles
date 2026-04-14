@@ -4,7 +4,9 @@
 #
 # Commands:
 #   cw <branch>    # Launch Claude Code in a worktree for the given branch
+#   ocw <branch>   # Launch OpenCode in a worktree for the given branch
 #   cls            # Launch Claude Code in a sandbox from the current directory
+#   ocs            # Launch OpenCode from the current directory
 #   cwp            # Cherry-pick new commits from all worktree branches into current branch
 #   cwm            # Move uncommitted changes from main checkout into current worktree
 #   cwr            # Reset current branch to origin (undo cwp cherry-picks)
@@ -12,6 +14,7 @@
 #
 # Requirements:
 #   - Claude Code CLI (claude)
+#   - OpenCode CLI (opencode)
 #   - Git
 #   - Zellij (optional, for pane naming)
 #   - firejail (Linux) or sandbox-exec (macOS) for filesystem sandboxing
@@ -25,34 +28,64 @@
 # Other  → unsandboxed with warning
 _claude_sandbox_profile() {
     local repo_root="$1"
+    local git_common_dir="$2"  # optional: resolved git common dir for worktrees
     local brew_prefix
     brew_prefix="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
 
-    # Allow real paths of symlinked files in ~/.claude (e.g. CLAUDE.md → dotfiles)
+    # Allow real paths of symlinked entries in ~/.claude (e.g. CLAUDE.md → dotfiles)
     # sandbox-exec resolves symlinks, so targets outside ~/.claude need explicit rules.
+    # Use subpath for directory symlinks (e.g. skills/) and literal for file symlinks.
     local symlink_rules="" _link _rpath
     for _link in "$HOME/.claude/"*(N@); do
         _rpath=$(realpath "$_link" 2>/dev/null)
         if [[ -n "$_rpath" && "$_rpath" != "$HOME/.claude/"* ]]; then
-            symlink_rules+=$'\n'"(allow file-read* (literal \"${_rpath}\"))"
+            if [[ -d "$_rpath" ]]; then
+                symlink_rules+=$'\n'"(allow file-read* (subpath \"${_rpath}\"))"
+            else
+                symlink_rules+=$'\n'"(allow file-read* (literal \"${_rpath}\"))"
+            fi
         fi
     done
 
-    # Build read rules for intermediate dirs between $HOME and repo_root
-    # so the sandbox can traverse the path (e.g. ~/clients/foo/repo)
+    # Build read rules for intermediate dirs so the sandbox can traverse paths.
+    # Without these, repos outside $HOME (e.g. /Volumes/drive/project) are unreachable.
     local traverse_rules=""
-    if [[ "$repo_root" == "$HOME"/* ]]; then
-        local rel="${repo_root#$HOME/}"
-        local -a parts=("${(@s:/:)rel}")
-        if (( ${#parts[@]} > 1 )); then
-            local current="$HOME"
-            local i
-            for i in {1..$((${#parts[@]} - 1))}; do
-                current="$current/${parts[$i]}"
-                traverse_rules+=$'\n'"(allow file-read* (literal \"$current\"))"
+    local extra_project_rules=""
+
+    # Helper: add traverse rules from base (/ or $HOME) down to target
+    _sb_traverse() {
+        local _target="$1" _base="/"
+        [[ "$_target" == "$HOME"/* ]] && _base="$HOME"
+        local _rel="${_target#$_base}"
+        _rel="${_rel#/}"
+        local -a _pts=("${(@s:/:)_rel}")
+        if (( ${#_pts[@]} > 1 )); then
+            local _cur="$_base" _j
+            for _j in {1..$((${#_pts[@]} - 1))}; do
+                _cur="${_cur%/}/${_pts[$_j]}"
+                traverse_rules+=$'\n'"(allow file-read* (literal \"$_cur\"))"
             done
         fi
+    }
+
+    _sb_traverse "$repo_root"
+
+    # If realpath differs (symlinks, firmlinks), allow the resolved path too
+    local _real_root
+    _real_root=$(realpath "$repo_root" 2>/dev/null)
+    if [[ -n "$_real_root" && "$_real_root" != "$repo_root" ]]; then
+        extra_project_rules+=$'\n'"(allow file-read* file-write* (subpath \"${_real_root}\"))"
+        _sb_traverse "$_real_root"
     fi
+
+    # Git common dir — needed when repo_root is itself a worktree whose
+    # .git points to a main repo outside repo_root
+    if [[ -n "$git_common_dir" && "$git_common_dir" != "$repo_root"/* ]]; then
+        extra_project_rules+=$'\n'"(allow file-read* file-write* (subpath \"${git_common_dir}\"))"
+        _sb_traverse "$git_common_dir"
+    fi
+
+    unset -f _sb_traverse
 
     cat <<SEATBELT
 (version 1)
@@ -115,6 +148,7 @@ ${symlink_rules}
 
 ;; Git and SSH config (read-only — known_hosts for host verification, no private keys)
 (allow file-read* (literal "$HOME/.gitconfig"))
+(allow file-read* (literal "$HOME/.gitignore_global"))
 (allow file-read* (subpath "$HOME/.config/git"))
 (allow file-read* file-write* (literal "$HOME/.ssh/known_hosts"))
 (allow file-read* (literal "$HOME/.ssh/config"))
@@ -122,6 +156,7 @@ ${symlink_rules}
 ;; Project directory (read+write — includes parent dir traversal)
 ${traverse_rules}
 (allow file-read* file-write* (subpath "${repo_root}"))
+${extra_project_rules}
 
 ;; Network (Claude API)
 (allow network-outbound)
@@ -134,27 +169,232 @@ _claude_sandboxed() {
     local repo_root="$1"
     shift
 
+    # Detect git common dir (needed when running from inside a worktree,
+    # where .git points to a main repo outside the worktree path)
+    local common_dir=""
+    local _git_common
+    _git_common=$(git -C "$repo_root" rev-parse --git-common-dir 2>/dev/null)
+    if [[ -n "$_git_common" ]]; then
+        if [[ "$_git_common" != /* ]]; then
+            common_dir=$(realpath "$repo_root/$_git_common" 2>/dev/null)
+        else
+            common_dir=$(realpath "$_git_common" 2>/dev/null || echo "$_git_common")
+        fi
+    fi
+
     case "$(uname -s)" in
         Linux)
-            firejail --noprofile \
-                --whitelist="$HOME/.local/bin/claude" \
-                --whitelist="$HOME/.local/share/claude" \
-                --whitelist="$HOME/.claude" \
-                --whitelist="$HOME/.claude.json" \
-                --whitelist="$HOME/.cache/claude-cli-nodejs" \
-                --whitelist="$HOME/.gitconfig" \
-                --whitelist="$repo_root" \
-                --whitelist=/home/linuxbrew \
-                claude "$@"
+            local -a _wl=(
+                --whitelist="$HOME/.local/bin/claude"
+                --whitelist="$HOME/.local/share/claude"
+                --whitelist="$HOME/.claude"
+                --whitelist="$HOME/.claude.json"
+                --whitelist="$HOME/.cache/claude-cli-nodejs"
+                --whitelist="$HOME/.gitconfig"
+                --whitelist="$repo_root"
+                --whitelist=/home/linuxbrew
+            )
+            if [[ -n "$common_dir" && "$common_dir" != "$repo_root"/* ]]; then
+                _wl+=(--whitelist="$common_dir")
+            fi
+            firejail --noprofile "${_wl[@]}" claude "$@"
             ;;
         Darwin)
             local profile
-            profile="$(_claude_sandbox_profile "$repo_root")"
+            profile="$(_claude_sandbox_profile "$repo_root" "$common_dir")"
             sandbox-exec -p "$profile" "$HOME/.local/bin/claude" "$@"
             ;;
         *)
             echo "Warning: no sandbox available on $(uname -s), running claude unsandboxed" >&2
             claude "$@"
+            ;;
+    esac
+}
+
+# Run opencode under a platform-appropriate filesystem sandbox
+# ----------------------------------------------------------
+# Usage: _opencode_sandboxed <repo_root>
+_opencode_sandbox_profile() {
+    local repo_root="$1"
+    local extra_root="$2"
+    local opencode_path="$3"
+    local brew_prefix
+    brew_prefix="$(brew --prefix 2>/dev/null || echo /opt/homebrew)"
+
+    # Allow real paths of symlinked files in ~/.config/opencode, ~/.opencode, or ~/.claude
+    local symlink_rules="" _link _rpath
+    for _link in "$HOME/.config/opencode/"*(N@) "$HOME/.opencode/"*(N@) "$HOME/.claude/"*(N@); do
+        _rpath=$(realpath "$_link" 2>/dev/null)
+        if [[ -n "$_rpath" && "$_rpath" != "$HOME/.config/opencode/"* && "$_rpath" != "$HOME/.opencode/"* && "$_rpath" != "$HOME/.claude/"* ]]; then
+            symlink_rules+=$'\n'"(allow file-read* (literal \"${_rpath}\"))"
+        fi
+    done
+
+    local project_rules=""
+    _opencode_add_project_rules() {
+        local path="$1"
+        if [[ -z "$path" ]]; then
+            return
+        fi
+
+        if [[ "$path" == "$HOME"/* ]]; then
+            local rel="${path#$HOME/}"
+            local -a parts=("${(@s:/:)rel}")
+            if (( ${#parts[@]} > 1 )); then
+                local current="$HOME"
+                local i
+                for i in {1..$((${#parts[@]} - 1))}; do
+                    current="$current/${parts[$i]}"
+                    project_rules+=$'\n'"(allow file-read* (literal \"$current\"))"
+                done
+            fi
+        fi
+
+        project_rules+=$'\n'"(allow file-read* file-write* (subpath \"${path}\"))"
+    }
+
+    _opencode_add_project_rules "$repo_root"
+    if [[ -n "$extra_root" && "$extra_root" != "$repo_root" ]]; then
+        _opencode_add_project_rules "$extra_root"
+    fi
+
+    local opencode_binary_rule=""
+    if [[ -n "$opencode_path" ]]; then
+        opencode_binary_rule=$'\n'"(allow file-read* (literal \"${opencode_path}\"))"
+    fi
+
+    cat <<SEATBELT
+(version 1)
+(deny default)
+
+;; Process management
+(allow process-fork process-exec signal)
+(allow mach-lookup)
+(allow ipc-posix-shm-read-data ipc-posix-shm-read-metadata ipc-posix-shm-write-data ipc-posix-shm-write-create ipc-posix-shm-write-unlink)
+(allow sysctl-read)
+
+;; System libraries and tools (read-only)
+(allow file-read* (subpath "/System"))
+(allow file-read* (subpath "/Library"))
+(allow file-read* (subpath "/usr"))
+(allow file-read* (subpath "/bin"))
+(allow file-read* file-write* file-ioctl (subpath "/dev"))
+(allow file-read* (subpath "/private/etc"))
+(allow file-read* (subpath "/private/var"))
+(allow file-read* (subpath "/var"))
+(allow file-read* (literal "/etc"))
+(allow file-read* (subpath "/etc"))
+(allow file-read* (literal "/"))
+(allow file-read* (literal "/private"))
+(allow file-read* (literal "/Users"))
+
+;; Temp directories (read+write)
+(allow file-read* file-write* (subpath "/private/tmp"))
+(allow file-read* file-write* (subpath "/private/var/folders"))
+(allow file-read* file-write* (subpath "/tmp"))
+
+;; Homebrew (read-only, /opt literal needed for path traversal)
+(allow file-read* (literal "/opt"))
+(allow file-read* (subpath "${brew_prefix}"))
+
+;; Home directory listing
+(allow file-read* (literal "$HOME"))
+
+;; OpenCode binary (read-only)
+(allow file-read* (subpath "$HOME/.local/bin"))
+${opencode_binary_rule}
+
+;; OpenCode config and cache (read+write)
+(allow file-read* file-write* (subpath "$HOME/.config/opencode"))
+(allow file-read* file-write* (subpath "$HOME/.local/share/opencode"))
+(allow file-read* file-write* (subpath "$HOME/.cache/opencode"))
+(allow file-read* file-write* (subpath "$HOME/.local/state/opencode"))
+(allow file-read* file-write* (subpath "$HOME/.opencode"))
+(allow file-read* file-write* (literal "$HOME/.opencode.json"))
+${symlink_rules}
+
+;; Claude config (read-only — needed for skills)
+(allow file-read* (subpath "$HOME/.claude"))
+
+;; Bun cache (read+write)
+(allow file-read* file-write* (subpath "$HOME/.bun"))
+
+;; npm cache (read+write)
+(allow file-read* file-write* (subpath "$HOME/.npm"))
+
+;; ccstatusline config (read+write)
+(allow file-read* file-write* (subpath "$HOME/.config/ccstatusline"))
+
+;; Keychain (read-only — needed for auth tokens)
+(allow file-read* (subpath "$HOME/Library/Keychains"))
+
+;; Git and SSH config (read-only — known_hosts for host verification, no private keys)
+(allow file-read* (literal "$HOME/.gitconfig"))
+(allow file-read* (literal "$HOME/.gitignore_global"))
+(allow file-read* (subpath "$HOME/.config/git"))
+(allow file-read* file-write* (literal "$HOME/.ssh/known_hosts"))
+(allow file-read* (literal "$HOME/.ssh/config"))
+
+;; Project directory (read+write — includes parent dir traversal)
+${project_rules}
+
+;; Network (OpenCode API)
+(allow network-outbound)
+(allow network-bind (local ip "*:*"))
+(allow system-socket)
+SEATBELT
+}
+
+_opencode_sandboxed() {
+    local repo_root="$1"
+    shift
+
+    local opencode_path
+    opencode_path=$(command -v opencode 2>/dev/null)
+    if [[ -z "$opencode_path" ]]; then
+        echo "Error: opencode not found in PATH"
+        return 1
+    fi
+
+    local common_dir
+    common_dir=$(git -C "$repo_root" rev-parse --git-common-dir 2>/dev/null)
+    if [[ -n "$common_dir" ]]; then
+        if [[ "$common_dir" != /* ]]; then
+            common_dir=$(realpath "$repo_root/$common_dir" 2>/dev/null)
+        else
+            common_dir=$(realpath "$common_dir" 2>/dev/null || echo "$common_dir")
+        fi
+    fi
+
+    mkdir -p "$HOME/.config/opencode" "$HOME/.local/share/opencode" "$HOME/.cache/opencode" "$HOME/.local/state/opencode"
+
+    case "$(uname -s)" in
+        Linux)
+            local -a whitelists
+            whitelists=(--whitelist="$repo_root" --whitelist="$HOME/.config/opencode" --whitelist="$HOME/.local/share/opencode" --whitelist="$HOME/.cache/opencode" --whitelist="$HOME/.local/state/opencode" --whitelist="$HOME/.claude" --whitelist="$HOME/.gitconfig" --whitelist=/home/linuxbrew)
+            if [[ -n "$common_dir" ]]; then
+                whitelists+=(--whitelist="$common_dir")
+            fi
+            if [[ -e "$HOME/.opencode" ]]; then
+                whitelists+=(--whitelist="$HOME/.opencode")
+            fi
+            if [[ -e "$HOME/.opencode.json" ]]; then
+                whitelists+=(--whitelist="$HOME/.opencode.json")
+            fi
+            whitelists+=(--whitelist="$opencode_path")
+
+            (cd "$repo_root" && firejail --noprofile \
+                "${whitelists[@]}" \
+                opencode "$@")
+            ;;
+        Darwin)
+            local profile
+            profile="$(_opencode_sandbox_profile "$repo_root" "$common_dir" "$opencode_path")"
+            (cd "$repo_root" && sandbox-exec -p "$profile" "$opencode_path" "$@")
+            ;;
+        *)
+            echo "Warning: no sandbox available on $(uname -s), running opencode unsandboxed" >&2
+            (cd "$repo_root" && opencode "$@")
             ;;
     esac
 }
@@ -266,6 +506,70 @@ cw() {
     _claude_sandboxed "$repo_root" --worktree "$branch" --dangerously-skip-permissions
 }
 
+# Launch OpenCode in a worktree with Zellij pane naming
+# ---------------------------------------------------------
+# Usage: ocw <branch>
+#
+# Examples:
+#   ocw feat/my-feature    # Launch worktree on feat/my-feature
+#   ocw fix/login-bug      # Launch worktree on fix/login-bug
+ocw() {
+    if [[ -z "$1" ]]; then
+        echo "Usage: ocw <branch>"
+        echo "Launches OpenCode in a worktree for the given branch"
+        return 1
+    fi
+
+    local branch="$1"
+
+    # Set Zellij pane name to the branch (only if running inside Zellij)
+    if [[ -n "$ZELLIJ" ]]; then
+        zellij action rename-pane "$branch"
+    fi
+
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+        echo "Error: not inside a git repository"
+        return 1
+    fi
+
+    local repo_name="${repo_root:t}"
+    local worktrees_root="$repo_root/.claude/worktrees"
+    local worktree_path="$worktrees_root/$branch"
+
+    local wt_branch="$branch"
+    if [[ "$wt_branch" != worktree-* ]]; then
+        wt_branch="worktree-$branch"
+    fi
+
+    mkdir -p "${worktree_path:h}"
+
+    if [[ -d "$worktree_path" ]]; then
+        if ! git -C "$worktree_path" rev-parse --is-inside-work-tree &>/dev/null; then
+            echo "Error: $worktree_path exists but is not a git worktree"
+            return 1
+        fi
+    else
+        if git show-ref --verify --quiet "refs/heads/$wt_branch"; then
+            echo "Creating worktree for existing branch '$wt_branch'..."
+            git worktree add "$worktree_path" "$wt_branch" || return 1
+        else
+            local remote_branch
+            remote_branch=$(git ls-remote --heads origin "$wt_branch" 2>/dev/null)
+            if [[ -n "$remote_branch" ]]; then
+                echo "Creating worktree for remote branch 'origin/$wt_branch'..."
+                git worktree add "$worktree_path" "$wt_branch" || return 1
+            else
+                echo "Creating worktree with new branch '$wt_branch'..."
+                git worktree add -b "$wt_branch" "$worktree_path" || return 1
+            fi
+        fi
+    fi
+
+    _opencode_sandboxed "$worktree_path"
+}
+
 # Launch Claude Code in a sandbox from the current directory
 # ---------------------------------------------------------
 # Like `cw` but without worktree management — runs Claude in a
@@ -287,6 +591,28 @@ cls() {
     fi
 
     _claude_sandboxed "$repo_root" --dangerously-skip-permissions
+}
+
+# Launch OpenCode from the current directory
+# ---------------------------------------------------------
+# Like `ocw` but without worktree management — runs OpenCode in a sandbox.
+#
+# Examples:
+#   ocs    # Launch OpenCode in the current repo
+ocs() {
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+        echo "Error: not inside a git repository"
+        return 1
+    fi
+
+    # Set Zellij pane name to the repo directory name
+    if [[ -n "$ZELLIJ" ]]; then
+        zellij action rename-pane "${repo_root:t}"
+    fi
+
+    _opencode_sandboxed "$repo_root"
 }
 
 # Cherry-pick new commits from all worktree branches into current branch

@@ -100,6 +100,11 @@ alias cly='claude --dangerously-skip-permissions'
 
 # Claude Code commit helper - interactive with confirmation
 commit() {
+  local auto_confirm=false
+  if [[ "$1" == "-y" ]]; then
+    auto_confirm=true
+  fi
+
   # Stage all changes
   git add -A
 
@@ -143,13 +148,17 @@ commit() {
   echo "$msg" | sed 's/^/  /'
   echo ""
 
-  # Ask for confirmation
-  read "confirm?Commit? [y/N] "
-  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+  # Ask for confirmation (skip with -y)
+  if [[ "$auto_confirm" == true ]]; then
     git commit -m "$msg"
   else
-    echo "Commit cancelled."
-    git reset HEAD >/dev/null 2>&1
+    read "confirm?Commit? [y/N] "
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      git commit -m "$msg"
+    else
+      echo "Commit cancelled."
+      git reset HEAD >/dev/null 2>&1
+    fi
   fi
 }
 

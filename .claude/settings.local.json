@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(zellij action:*)",
-      "Bash(zellij setup:*)"
+      "Bash(zellij setup:*)",
+      "Write(/tmp/ponder-plan-*.md)"
     ]
   }
 }

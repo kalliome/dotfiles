@@ -98,7 +98,7 @@ alias tw='gittower .'
 alias cl='claude'
 alias cly='claude --dangerously-skip-permissions'
 
-# Claude Code commit helper - interactive with confirmation
+# Pi commit helper - interactive with confirmation
 commit() {
   local auto_confirm=false
   if [[ "$1" == "-y" ]]; then
@@ -119,11 +119,11 @@ commit() {
   git --no-pager diff --staged --stat | sed 's/^/  /'
   echo ""
 
-  # Generate commit message using Claude
+  # Generate commit message using Pi
   echo "Generating message..."
   local raw stderr_output
   stderr_output=$(mktemp)
-  raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>"$stderr_output")
+  raw=$(pi --print "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>"$stderr_output")
   local rc=$?
 
   # Strip ANSI codes, then extract from first conventional commit type
@@ -133,10 +133,10 @@ commit() {
   if [[ -z "$msg" ]]; then
     echo "Failed to generate commit message."
     if [[ $rc -ne 0 ]]; then
-      echo "Claude exited with code $rc:"
+      echo "Pi exited with code $rc:"
       sed 's/^/  /' "$stderr_output"
     elif [[ -n "$raw" ]]; then
-      echo "Claude output did not match conventional commit format:"
+      echo "Pi output did not match conventional commit format:"
       echo "$raw" | head -5 | sed 's/^/  /'
     fi
     rm -f "$stderr_output"

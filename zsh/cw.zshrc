@@ -913,15 +913,15 @@ cwm() {
     git --no-pager diff --staged --stat | sed 's/^/  /'
     echo ""
 
-    # Generate commit message using Claude
+    # Generate commit message using Pi
     echo "Generating message..."
-    local raw=$(claude --print -p "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>/dev/null)
+    local raw=$(pi --print "Generate a git commit message for the staged changes. Conventional commit format. Max 100 chars per line. IMPORTANT: Output the raw commit message only - no preamble, no 'here is', no explanation, no quotes, no markdown. Start directly with the type (feat/fix/etc)." 2>/dev/null)
 
     local msg=$(echo "$raw" | sed -nE '/^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)[:(]/,$p')
 
     if [[ -z "$msg" ]]; then
         msg="chore: move uncommitted changes from main"
-        echo "Claude unavailable, using fallback message."
+        echo "Pi unavailable, using fallback message."
     fi
 
     echo "Message:"

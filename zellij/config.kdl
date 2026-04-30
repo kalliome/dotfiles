@@ -306,7 +306,22 @@ keybinds clear-defaults=true {
         bind "z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
         bind "|" { NewPane "right"; SwitchToMode "normal"; }
         bind "s" { NewPane "stacked"; SwitchToMode "normal"; }
-        bind "S" { NextSwapLayout; SwitchToMode "normal"; }
+        bind "g" {
+            Run "python3" "/Users/tkallio/.config/zellij/scripts/right-stack-pane.py" "right" {
+                in_place true
+                close_on_exit true
+                start_suspended false
+            }
+            SwitchToMode "normal"
+        }
+        bind "G" {
+            Run "python3" "/Users/tkallio/.config/zellij/scripts/right-stack-pane.py" "left" {
+                in_place true
+                close_on_exit true
+                start_suspended false
+            }
+            SwitchToMode "normal"
+        }
         bind "a" { Run "claude"; SwitchToMode "normal"; }
         bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "x" { CloseFocus; SwitchToMode "normal"; }

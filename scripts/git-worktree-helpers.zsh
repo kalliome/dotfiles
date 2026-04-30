@@ -3,6 +3,26 @@
 # Save this file as: ~/.config/zsh/git-worktree-helpers.zsh
 # Or: ~/bin/git-worktree-helpers.sh
 
+# Optional ntfy notifications for worktree changes
+WT_NTFY_TOPIC="${WT_NTFY_TOPIC:-418-kallio-digital}"
+WT_NTFY_URL="${WT_NTFY_URL:-https://ntfy.sh/${WT_NTFY_TOPIC}}"
+
+wt-ntfy-send() {
+    command -v curl >/dev/null 2>&1 || return 0
+
+    local message="$1"
+    [[ -z "$message" ]] && return 0
+
+    local payload
+    payload=$(printf "%b" "$message")
+
+    curl -fsS \
+        -H "Title: Git Worktree" \
+        -H "Tags: git" \
+        -d "$payload" \
+        "$WT_NTFY_URL" >/dev/null 2>&1 &!
+}
+
 # Create a new worktree for a feature branch
 # Usage: wt-create <branch-name>
 wt-create() {
@@ -42,8 +62,10 @@ wt-create() {
     if [ $? -eq 0 ]; then
         echo "✓ Worktree created at: $worktree_path"
         echo "  You can cd into it with: cd $worktree_path"
+        wt-ntfy-send "Created worktree: ${repo_name}/${branch_name}\n${worktree_path}"
     else
         echo "✗ Failed to create worktree"
+        wt-ntfy-send "Failed to create worktree: ${repo_name}/${branch_name}"
         return 1
     fi
 }
@@ -176,9 +198,11 @@ wt-remove() {
             git worktree remove "$wt_path"
             if [ $? -eq 0 ]; then
                 echo "✓ Worktree removed: $wt_path"
+                wt-ntfy-send "Removed worktree: ${branch}\n${wt_path}"
             else
                 echo "✗ Failed to remove worktree"
                 echo "  Try: git worktree remove --force $wt_path"
+                wt-ntfy-send "Failed to remove worktree: ${branch}\n${wt_path}"
             fi
         else
             echo "Cancelled"
@@ -218,9 +242,11 @@ wt-remove() {
         git worktree remove "$worktree_path"
         if [ $? -eq 0 ]; then
             echo "✓ Worktree removed successfully"
+            wt-ntfy-send "Removed worktree: ${branch_name}\n${worktree_path}"
         else
             echo "✗ Failed to remove worktree"
             echo "  Try: git worktree remove --force $worktree_path"
+            wt-ntfy-send "Failed to remove worktree: ${branch_name}\n${worktree_path}"
         fi
     fi
 }
@@ -314,6 +340,7 @@ wt-prune() {
     echo "Pruning stale worktree references..."
     git worktree prune -v
     echo "✓ Done"
+    wt-ntfy-send "Pruned stale git worktree references in $(git rev-parse --show-toplevel)"
 }
 
 # Show help for git worktree commands

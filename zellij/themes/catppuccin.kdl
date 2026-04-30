@@ -53,5 +53,32 @@ themes {
     cyan "#89dceb" // Sky
     black "#181825" // Mantle
     white "#cdd6f4" // Text
+
+    frame_unselected {
+      base 88 91 112        // #585b70 Surface2
+      background 24 24 37   // #181825 Mantle
+      emphasis_0 88 91 112
+      emphasis_1 88 91 112
+      emphasis_2 88 91 112
+      emphasis_3 88 91 112
+    }
+
+    frame_selected {
+      base 88 91 112        // #585b70 Surface2
+      background 24 24 37   // #181825 Mantle
+      emphasis_0 88 91 112
+      emphasis_1 88 91 112
+      emphasis_2 88 91 112
+      emphasis_3 88 91 112
+    }
+
+    frame_highlight {
+      base 88 91 112        // #585b70 Surface2
+      background 24 24 37   // #181825 Mantle
+      emphasis_0 88 91 112
+      emphasis_1 88 91 112
+      emphasis_2 88 91 112
+      emphasis_3 88 91 112
+    }
   }
 }

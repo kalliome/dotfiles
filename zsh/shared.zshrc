@@ -50,7 +50,6 @@ alias sshpub="cat ~/.ssh/id_rsa.pub"
 alias myip="curl -s https://api.ipify.org"
 alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'
 alias doct="doctl"
-alias zz="zed ."
 alias c.="cursor ."
 
 # Nextjs dev with turbopack
@@ -78,9 +77,10 @@ alias vim='nvim'
 
 # Zellij
 alias zn='zellij'
-alias z='zellij attach -c main'
+alias zz='zellij attach -c main'
 alias zl='zellij list-sessions'
-
+alias z='zoxide'
+alias zk='zellij kill-all-sessions -y && zellij delete-all-sessions -y'
 # Config management
 alias edit-config='hx ~/.zshrc'
 alias ec='edit-config'

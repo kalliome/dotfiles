@@ -261,8 +261,8 @@ keybinds clear-defaults=true {
     }
     tmux {
         bind "left" { MoveFocus "left"; SwitchToMode "normal"; }
-        bind "down" { MoveFocus "down"; SwitchToMode "normal"; }
-        bind "up" { MoveFocus "up"; SwitchToMode "normal"; }
+        bind "down" { MoveFocus "down"; }
+        bind "up" { MoveFocus "up"; }
         bind "right" { MoveFocus "right"; SwitchToMode "normal"; }
         bind "space" { NextSwapLayout; }
         bind "\"" { NewPane "down"; SwitchToMode "normal"; }
@@ -285,6 +285,14 @@ keybinds clear-defaults=true {
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
         bind "l" { GoToNextTab; SwitchToMode "normal"; }
         bind "o" { FocusNextPane; }
+        bind "p" {
+            Run "python3" "/Users/tkallio/.config/zellij/scripts/pane-picker.py" {
+                floating true
+                borderless true
+                close_on_exit true
+            }
+            SwitchToMode "normal"
+        }
         bind "q" { CloseFocus; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "resize"; }
         bind "w" {
@@ -294,6 +302,7 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
+        bind "f" { ToggleFocusFullscreen; SwitchToMode "normal"; }
         bind "z" { ToggleFocusFullscreen; SwitchToMode "normal"; }
         bind "|" { NewPane "right"; SwitchToMode "normal"; }
         bind "s" { NewPane "stacked"; SwitchToMode "normal"; }
@@ -346,6 +355,11 @@ plugins {
 // eg. "file:/path/to/my-plugin.wasm"
 // eg. "https://example.com/my-plugin.wasm"
 load_plugins {
+    "file:/Users/tkallio/.config/zellij/plugins/zjframes.wasm" {
+        hide_frame_for_single_pane       "false"
+        hide_frame_except_for_search     "true"
+        hide_frame_except_for_fullscreen "true"
+    }
 }
 web_client {
     font "monospace"

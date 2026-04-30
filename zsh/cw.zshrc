@@ -3,6 +3,8 @@
 # Tools for working with Claude Code worktrees.
 #
 # Commands:
+#   wrt <branch>   # Create or jump to a git worktree for the given branch
+#   wrt remove <branch> # Remove a git worktree for the given branch
 #   cw <branch>    # Launch Claude Code in a worktree for the given branch
 #   ocw <branch>   # Launch OpenCode in a worktree for the given branch
 #   cls            # Launch Claude Code in a sandbox from the current directory
@@ -475,6 +477,275 @@ cls-test() {
     return $fail
 }
 
+# Git worktree helpers
+# --------------------
+_wrt_main_repo_root() {
+    local line
+    while IFS= read -r line; do
+        if [[ "$line" == worktree\ * ]]; then
+            print -r -- "${line#worktree }"
+            return 0
+        fi
+    done < <(git worktree list --porcelain 2>/dev/null)
+
+    return 1
+}
+
+_wrt_folder_name() {
+    local branch="$1"
+    local folder_name="${branch#teppokallio/}"
+
+    # Keep worktree folders flat even when branch names contain slashes.
+    folder_name="${folder_name//\//-}"
+
+    print -r -- "$folder_name"
+}
+
+_wrt_existing_path() {
+    local target_branch="$1"
+    local current_path=""
+    local current_branch=""
+    local line
+
+    while IFS= read -r line; do
+        if [[ "$line" == worktree\ * ]]; then
+            current_path="${line#worktree }"
+        elif [[ "$line" == branch\ * ]]; then
+            current_branch="${line#branch refs/heads/}"
+        elif [[ -z "$line" ]]; then
+            if [[ "$current_branch" == "$target_branch" ]]; then
+                print -r -- "$current_path"
+                return 0
+            fi
+
+            current_path=""
+            current_branch=""
+        fi
+    done < <(git worktree list --porcelain 2>/dev/null)
+
+    if [[ "$current_branch" == "$target_branch" ]]; then
+        print -r -- "$current_path"
+        return 0
+    fi
+
+    return 1
+}
+
+_wrt_base_ref() {
+    local candidate
+
+    for candidate in main master; do
+        if git show-ref --verify --quiet "refs/heads/$candidate"; then
+            print -r -- "$candidate"
+            return 0
+        fi
+    done
+
+    for candidate in main master; do
+        if git show-ref --verify --quiet "refs/remotes/origin/$candidate"; then
+            print -r -- "origin/$candidate"
+            return 0
+        fi
+    done
+
+    echo "Error: could not find local or origin main/master branch" >&2
+    return 1
+}
+
+_wrt_list() {
+    local repo_root
+    repo_root=$(_wrt_main_repo_root) || return 1
+
+    local -A worktree_branches
+    local line
+    local branch
+    local current_path=""
+    local current_branch=""
+    local -a removable_branches
+
+    while IFS= read -r line; do
+        if [[ "$line" == worktree\ * ]]; then
+            current_path="${line#worktree }"
+        elif [[ "$line" == branch\ * ]]; then
+            current_branch="${line#branch refs/heads/}"
+        elif [[ -z "$line" ]]; then
+            if [[ -n "$current_branch" ]]; then
+                worktree_branches[$current_branch]=1
+                if [[ -n "$current_path" && "$current_path" != "$repo_root" ]]; then
+                    removable_branches+=("$current_branch")
+                fi
+            fi
+
+            current_path=""
+            current_branch=""
+        fi
+    done < <(git worktree list --porcelain 2>/dev/null)
+
+    if [[ -n "$current_branch" ]]; then
+        worktree_branches[$current_branch]=1
+        if [[ -n "$current_path" && "$current_path" != "$repo_root" ]]; then
+            removable_branches+=("$current_branch")
+        fi
+    fi
+
+    echo "Worktrees:"
+    git worktree list || return 1
+    echo ""
+
+    if [[ ${#removable_branches[@]} -gt 0 ]]; then
+        echo "Remove worktree commands:"
+        for branch in "${removable_branches[@]}"; do
+            printf '  wrt remove %s\n' "$branch"
+        done
+        echo ""
+    else
+        echo "No removable worktrees."
+        echo ""
+    fi
+
+    local -a available_branches
+    while IFS= read -r branch; do
+        [[ -z "$branch" ]] && continue
+        [[ "$branch" == "main" || "$branch" == "master" ]] && continue
+        [[ -n "${worktree_branches[$branch]}" ]] && continue
+        available_branches+=("$branch")
+    done < <(git for-each-ref --sort=refname --format='%(refname:short)' refs/heads)
+
+    if [[ ${#available_branches[@]} -eq 0 ]]; then
+        echo "No existing local branches available for worktree creation."
+        return 0
+    fi
+
+    echo "Create worktree commands:"
+    for branch in "${available_branches[@]}"; do
+        printf '  wrt %s\n' "$branch"
+    done
+}
+
+_wrt_remove() {
+    local repo_root="$1"
+    local branch="$2"
+    local worktree_path
+
+    worktree_path=$(_wrt_existing_path "$branch")
+    if [[ -z "$worktree_path" ]]; then
+        echo "Error: no worktree found for branch '$branch'"
+        return 1
+    fi
+
+    if [[ "$worktree_path" == "$repo_root" ]]; then
+        echo "Error: cannot remove the main worktree"
+        return 1
+    fi
+
+    if [[ -n "$(git -C "$worktree_path" status --porcelain 2>/dev/null)" ]]; then
+        echo "Error: worktree '$branch' has uncommitted changes"
+        return 1
+    fi
+
+    git worktree remove "$worktree_path" || return 1
+    echo "Removed worktree: $worktree_path"
+}
+
+# Create, jump to, or remove git worktrees from the main checkout
+# ---------------------------------------------------------------
+# Usage:
+#   wrt
+#   wrt <branch>
+#   wrt remove <branch>
+#
+# Examples:
+#   wrt
+#   wrt teppokallio/cle-2358-email-notification-as-trigger-action
+#   wrt remove teppokallio/cle-2358-email-notification-as-trigger-action
+wrt() {
+    if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        echo "Error: not inside a git repository"
+        return 1
+    fi
+
+    if [[ -z "$1" ]]; then
+        _wrt_list
+        return $?
+    fi
+
+    local repo_root
+    repo_root=$(_wrt_main_repo_root)
+    if [[ -z "$repo_root" ]]; then
+        echo "Error: could not determine the main worktree"
+        return 1
+    fi
+
+    local current_root
+    current_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ "$current_root" != "$repo_root" ]]; then
+        echo "Error: run wrt from the main worktree"
+        return 1
+    fi
+
+    if [[ "$1" == "remove" ]]; then
+        if [[ -z "$2" ]]; then
+            echo "Usage: wrt remove <branch>"
+            return 1
+        fi
+
+        _wrt_remove "$repo_root" "$2"
+        return $?
+    fi
+
+    local branch="$1"
+    local existing_path
+    existing_path=$(_wrt_existing_path "$branch")
+    if [[ -n "$existing_path" ]]; then
+        builtin cd -- "$existing_path" || return 1
+        return 0
+    fi
+
+    local worktrees_root="$repo_root/.worktrees"
+    if [[ -e "$worktrees_root" && ! -d "$worktrees_root" ]]; then
+        echo "Error: $worktrees_root exists but is not a directory"
+        return 1
+    fi
+
+    mkdir -p "$worktrees_root" || return 1
+
+    local folder_name
+    folder_name=$(_wrt_folder_name "$branch")
+
+    local worktree_path="$worktrees_root/$folder_name"
+    if [[ -d "$worktree_path" ]]; then
+        if ! git -C "$worktree_path" rev-parse --is-inside-work-tree &>/dev/null; then
+            echo "Error: $worktree_path exists but is not a git worktree"
+            return 1
+        fi
+
+        local existing_branch
+        existing_branch=$(git -C "$worktree_path" branch --show-current 2>/dev/null)
+        if [[ "$existing_branch" != "$branch" ]]; then
+            echo "Error: $worktree_path already exists for branch '$existing_branch'"
+            return 1
+        fi
+
+        builtin cd -- "$worktree_path" || return 1
+        return 0
+    elif [[ -e "$worktree_path" ]]; then
+        echo "Error: $worktree_path exists but is not a directory"
+        return 1
+    fi
+
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+        git worktree add "$worktree_path" "$branch" || return 1
+    elif git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+        git worktree add --track -b "$branch" "$worktree_path" "origin/$branch" || return 1
+    else
+        local base_ref
+        base_ref=$(_wrt_base_ref) || return 1
+        git worktree add -b "$branch" "$worktree_path" "$base_ref" || return 1
+    fi
+
+    builtin cd -- "$worktree_path" || return 1
+}
+
 # Launch Claude Code in a worktree with Zellij pane naming
 # ---------------------------------------------------------
 # Usage: cw <branch>
@@ -513,6 +784,7 @@ cw() {
 # Examples:
 #   ocw feat/my-feature    # Launch worktree on feat/my-feature
 #   ocw fix/login-bug      # Launch worktree on fix/login-bug
+unalias ocw 2>/dev/null
 ocw() {
     if [[ -z "$1" ]]; then
         echo "Usage: ocw <branch>"

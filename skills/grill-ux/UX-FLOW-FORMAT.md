@@ -121,6 +121,22 @@ Use `Pass`, `Needs decision`, `Issue`, or `Not applicable` for each relevant ite
 - Density and breathing room: {status and note}
 - Adaptive checks for this flow: {status and note}
 
+## Intentional visual restraint check
+
+Use `Pass`, `Needs decision`, `Issue`, or `Not applicable` for each relevant item. Use this check to prevent generic AI/SaaS visual tropes and keep visual choices intentional, product-specific, and justified. Resolve or explicitly justify all `Issue`s before implementation handoff.
+
+- Decorative effects: {status and note; avoid unexplained gradients, aurora blobs, neon glows, glassmorphism, rainbow washes, and decorative color effects}
+- Elevation and surfaces: {status and note; avoid prominent shadows, hover-lift everywhere, floating cards, stacked panels, and unnecessary cardification}
+- Shape and radius: {status and note; use existing tokens or small radius by default; avoid pill/large-rounded surfaces unless justified}
+- Generic SaaS layout tropes: {status and note; avoid bento grids, centered hero stacks, 3-card rows, alternating marketing sections, arbitrary stat cards, fake dashboards, and desktop-only screenshot layouts unless the content model calls for them}
+- Typography and controls: {status and note; avoid oversized hero type, all-centered utility layouts, dramatic type contrast, oversized pill CTAs, gradient/glowing buttons, icon-stuffed controls, and competing loud actions}
+- Copy and content: {status and note; avoid vague SaaS/AI phrases, filler subtitles, fake testimonials, generic names, perfect fake metrics, and lorem ipsum; prefer concrete product-specific copy and realistic marked demo data}
+- Media, icons, and decoration: {status and note; avoid stock imagery, fake avatars, abstract people illustrations, decorative laptop mockups, floating icons, 3D blobs, emoji filler, and icon clutter}
+- Motion and states: {status and note; use motion for cause/effect, state changes, loading, or spatial relationships; avoid decorative transitions, excessive shimmer, confetti for ordinary actions, cute filler empty states, and vague errors}
+- Minimalism guardrails: {status and note; preserve hierarchy, affordances, contrast, labels, visible focus, target size, state text, and product character; avoid sterile template minimalism and hidden/icon-only controls}
+- Responsive realism: {status and note; avoid fragile wide grids, hover-dependent controls, dense horizontal toolbars, tiny touch targets, and mobile views that degrade into endless repeated cards}
+- Exceptions and rationale: {status and note; if using a normally flagged treatment, state the explicit user request, UX.md/design-token source, consistent existing pattern, or functional/art-direction reason inline}
+
 ## Reusable patterns to update in UX.md
 
 - {Pattern that should be added or changed in root UX.md}
@@ -138,6 +154,7 @@ Use `Pass`, `Needs decision`, `Issue`, or `Not applicable` for each relevant ite
 - [ ] Responsive behavior identified
 - [ ] Relevant accessibility behavior identified
 - [ ] Visual consistency check completed and strict fundamentals resolved
+- [ ] Intentional visual restraint check completed and issues resolved or justified
 - [ ] Reusable UX.md updates captured
 ~~~
 

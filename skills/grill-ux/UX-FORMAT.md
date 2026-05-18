@@ -21,6 +21,23 @@ Use when:
 Avoid:
 - {Common conflicting choice to avoid}
 
+### Intentional visual restraint
+
+Default to restrained, purposeful, product-specific UI. Avoid generic AI/SaaS visual tropes unless the user explicitly asks for them, `UX.md` or design-system tokens require them, a clearly consistent existing pattern uses them, or the UI purpose genuinely depends on them.
+
+Use when:
+- Defining page layouts, components, dashboards, forms, empty states, marketing/editorial surfaces, and visual handoff specs.
+- Interpreting vague style requests like "modern," "polished," "premium," "sleek," or "delightful"; treat them as requests for hierarchy, spacing, alignment, typography, clarity, and consistency, not automatic permission for decorative effects.
+
+Prefer:
+- Spacing, alignment, typography, subtle borders, separators, semantic color, realistic product data, clear labels, visible affordances, and tokenized visual choices.
+
+Avoid:
+- Unexplained gradients, aurora/glow/glass effects, prominent shadows, unnecessary cardification, large radius or pill shapes, generic bento/hero/3-card SaaS layouts, decorative dashboards, stock imagery, fake avatars, 3D blobs, emoji filler, vague SaaS copy, fake-perfect metrics, decorative motion, hidden controls, and sterile low-affordance minimalism.
+
+Exceptions:
+- Record the rationale inline: the user request, token/design-system source, consistent existing pattern, or functional/art-direction reason that makes the expressive treatment better than a flatter restrained alternative.
+
 ## Navigation patterns
 
 ### {Pattern name}

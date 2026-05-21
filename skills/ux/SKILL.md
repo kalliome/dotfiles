@@ -1,6 +1,6 @@
 ---
 name: ux
-description: Use for UX/UI grilling or UX plan implementation. Without a markdown plan path, grill the UX like grill-ux: ask one question at a time, use ASCII wireframes, and update UX docs. With a markdown plan path, implement that plan while preserving UX.md, visual consistency, and intentional visual restraint rules.
+description: 'Use for UX/UI grilling, UX plan review, or explicit UX plan implementation. Grill by default. A markdown path alone reviews/refines the handoff plan. Implement only when the user says exactly "Implement this plan: <markdown-path>".'
 ---
 
 <what-to-do>
@@ -8,9 +8,12 @@ description: Use for UX/UI grilling or UX plan implementation. Without a markdow
 First decide the mode from the invocation arguments:
 
 - **Grill mode:** no markdown plan file path was provided. Interview the user relentlessly about every aspect of a UX/UI plan until you reach shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
-- **Implementation mode:** a markdown plan file path was provided. Read the plan and implement it using the implementation rules in this skill. Keep the UX rules active throughout coding, delegation, review, and verification; do not fall back to generic implementation behavior that forgets visual consistency, intentional visual restraint, documented UX patterns, or the plan's handoff checklist.
+- **Plan Review / Handoff mode:** a readable markdown plan file path was provided, but the invocation does not start with the exact implementation trigger. Read and refine the plan until it is implementation-ready, update only UX documentation/plan files when useful, and end with a copy-paste implementation prompt. Do not edit application code.
+- **Implementation mode:** the invocation starts with the exact case-insensitive phrase `Implement this plan: <markdown-path>`. Read the plan, verify it is implementation-ready, and implement it using the implementation rules in this skill. Keep the UX rules active throughout coding, delegation, review, and verification; do not fall back to generic implementation behavior that forgets visual consistency, intentional visual restraint, documented UX patterns, or the plan's handoff checklist.
 
 In Grill mode, ask the questions one at a time, waiting for feedback on each question before continuing. If a question can be answered by exploring the codebase, explore the codebase instead.
+
+In Plan Review / Handoff mode, do not implement application code. Ask focused questions only for decisions that remain blocking after inspecting the plan, `UX.md`, relevant `docs/ux/*`, design-system tokens, and observed UI patterns.
 
 In Implementation mode, do not re-grill by default. Ask a focused question only when the plan has an unresolved decision that blocks implementation or conflicts with existing `UX.md`, design-system tokens, or observed UI patterns.
 
@@ -52,9 +55,10 @@ If the repo has multiple apps or product surfaces, use one root `UX.md` for shar
 Treat an invocation argument as a plan file when it is a readable markdown path, usually ending in `.md`, such as `docs/ux/onboarding.md`, `plans/checkout.md`, or `./my-plan.md`.
 
 - If no markdown path is provided, use Grill mode.
-- If exactly one markdown path is provided, use Implementation mode.
-- If multiple markdown paths are provided, use the one explicitly labelled as the plan. If none is labelled, ask which plan to implement.
-- If the provided markdown path is missing or unreadable, stop and ask for the correct path.
+- A markdown path alone never starts implementation. Use Plan Review / Handoff mode.
+- Start Implementation mode only when the invocation begins with the exact words `Implement this plan:` followed by one markdown path. Match the words case-insensitively and allow harmless whitespace variation around the path, but do not accept softer variants such as "use this plan", "build this", "start from this", or a bare path.
+- If multiple markdown paths are provided, use the one explicitly labelled after `Implement this plan:` for implementation. In Plan Review / Handoff mode, ask which plan to review unless one is clearly labelled as the plan.
+- If the provided markdown path is missing, unreadable, or not markdown, stop and ask for the correct path. Do not infer a replacement path, search broadly, or implement from conversation memory alone.
 - If the plan contains open decisions, inspect the codebase and existing UX docs first; ask the user only for decisions that remain blocking.
 
 ## Questioning order
@@ -211,9 +215,62 @@ If a proposed direction conflicts with existing `UX.md` or current UI, call out 
 
 When the user chooses a flow/page handoff spec, create or update `docs/ux/{flow-or-page-slug}.md`. Include goal, users/context, entry points, screen/state map, ASCII wireframes, component inventory, data points per view, validation/error/loading/empty states, accessibility notes when relevant, open decisions, and implementation handoff checklist.
 
+Every implementation handoff plan must include a final `Implementation prompt` section with a copy-paste prompt that starts with the exact trigger phrase:
+
+```md
+Implement this plan: docs/ux/{flow-or-page-slug}.md
+
+Follow the plan exactly enough to preserve its intent. Also follow repository `UX.md`, relevant `docs/ux/*`, existing design-system tokens and component patterns, the Visual consistency check, and the Intentional visual restraint check.
+
+Do not re-grill unless the plan has a blocking contradiction or missing decision. If blocked, ask one focused question. Otherwise implement, verify, and report checks run plus any concrete gaps.
+```
+
+### Implementation-ready handoff gate
+
+A markdown handoff plan is implementation-ready only when:
+
+- Target screens/routes/components are identified.
+- A screen/state map exists.
+- Desktop/mobile wireframes exist when visual layout matters.
+- Data, actions, and states are listed.
+- Loading, empty, error, validation, cancel/retry, unauthorized, and other relevant recovery states are resolved or marked not applicable.
+- Responsive behavior and accessibility notes exist.
+- The Visual consistency check has no `Issue` or `Needs decision` items.
+- The Intentional visual restraint check has no `Issue` or `Needs decision` items.
+- The open decisions list is empty.
+- The implementation handoff checklist is complete.
+- The final `Implementation prompt` section is present and starts with `Implement this plan: <markdown-path>`.
+
+If any gate item is missing in Grill mode or Plan Review / Handoff mode, keep grilling, inspect the codebase, or update the UX plan before offering implementation. If any gate item is missing in Implementation mode, stop and ask one focused blocking question or request an updated plan path; do not code through an incomplete handoff.
+
+## Plan Review / Handoff mode rules
+
+When a markdown plan file is provided without the exact `Implement this plan:` trigger, review and refine the plan rather than implementing it.
+
+Allowed edits:
+
+- Create or update root `UX.md` when a reusable UX pattern is resolved.
+- Create or update `docs/ux/*.md` handoff specs.
+- Edit the provided markdown plan file to make it implementation-ready.
+
+Forbidden edits:
+
+- Do not edit application code, routes, components, tests, styles, fixtures, or build configuration.
+- Do not delegate application-code implementation.
+- Do not proceed from plan review into coding unless the user explicitly chooses implementation after the handoff plan exists.
+
+Before closing Plan Review / Handoff mode:
+
+1. Apply the Implementation-ready handoff gate.
+2. Resolve missing items through codebase inspection or one focused question at a time.
+3. Save/update the markdown handoff plan when appropriate.
+4. Output the copy-paste implementation prompt.
+
 ## Implementation mode rules
 
-When a markdown plan file is provided, implement the plan rather than continuing the grilling posture.
+When the user says exactly `Implement this plan: <markdown-path>`, implement the plan rather than continuing the grilling posture.
+
+Implementation requires an existing readable markdown plan. If the plan is missing, unreadable, not markdown, or fails the Implementation-ready handoff gate, stop and resolve the blocking plan issue before coding.
 
 ### Required context before editing
 
@@ -274,15 +331,16 @@ Report any remaining gaps as concrete follow-up items, not vague polish notes.
 
 ## Build handoff
 
-In Grill mode, the UX skill owns interrogation, shared understanding, ASCII prototypes, and UX documentation. If the user chooses to build after the UX plan is resolved, hand off to the normal implementation workflow and include the UX rule pack above so implementation remembers the rules.
+In Grill mode, the UX skill owns interrogation, shared understanding, ASCII prototypes, and UX documentation. When the plan is resolved, ask the user what to do next with exactly these choices:
+
+1. **Implement now in this session** — first create/update the markdown handoff plan, then implement from that file using the UX rule pack above.
+2. **Create/update markdown handoff plan** — save `docs/ux/{flow-or-page-slug}.md` and output a copy-paste prompt for a fresh agent.
+
+Do not start implementation from Grill mode until the user explicitly chooses option 1. Even when the user chooses option 1, create or update the markdown plan first so implementation has an auditable source of truth.
+
+In Plan Review / Handoff mode, close with the updated plan status, remaining blockers if any, and the copy-paste implementation prompt when the plan is ready. Do not report application-code checks because no application code should have changed.
 
 In Implementation mode, the UX skill owns implementing the provided markdown plan under the same UX rules. Route high-polish UI review or implementation to a UI/UX specialist when available, but keep the plan path and UX rule pack in every delegated prompt.
-
-In Grill mode, close with a clear next action choice:
-
-1. Save/update root `UX.md`
-2. Create/update a `docs/ux/{slug}.md` handoff spec
-3. Hand the agreed spec to implementation
 
 In Implementation mode, close with what was implemented, what checks ran, whether UX docs changed, and any concrete remaining gaps.
 

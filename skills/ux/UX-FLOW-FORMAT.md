@@ -156,6 +156,20 @@ Use `Pass`, `Needs decision`, `Issue`, or `Not applicable` for each relevant ite
 - [ ] Visual consistency check completed and strict fundamentals resolved
 - [ ] Intentional visual restraint check completed and issues resolved or justified
 - [ ] Reusable UX.md updates captured
+- [ ] Open decisions resolved
+- [ ] Implementation prompt included
+
+## Implementation prompt
+
+Copy this into a fresh agent:
+
+```md
+Implement this plan: docs/ux/{flow-or-page-slug}.md
+
+Follow the plan exactly enough to preserve its intent. Also follow repository `UX.md`, relevant `docs/ux/*`, existing design-system tokens and component patterns, the Visual consistency check, and the Intentional visual restraint check.
+
+Do not re-grill unless the plan has a blocking contradiction or missing decision. If blocked, ask one focused question. Otherwise implement, verify, and report checks run plus any concrete gaps.
+```
 ~~~
 
 ## Rules
@@ -164,3 +178,4 @@ Use `Pass`, `Needs decision`, `Issue`, or `Not applicable` for each relevant ite
 - **Implementation-ready.** A builder should know the screen sequence, data, actions, and state behavior without re-running the whole conversation.
 - **Use ASCII for structure, not pixel perfection.** Show hierarchy, regions, actions, and state changes.
 - **Mark assumptions.** If codebase exploration did not confirm a data source or route, label it as an assumption or open decision.
+- **Include the exact implementation trigger.** The implementation prompt must start with `Implement this plan: <markdown-path>`. A markdown path alone is only for plan review/handoff and must not start coding.

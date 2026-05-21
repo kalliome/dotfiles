@@ -162,7 +162,7 @@ commit() {
   fi
 }
 
-# Claude Code PR helper - interactive with confirmation
+# Pi PR helper - interactive with confirmation
 create-pr() {
   local draft=false
   if [[ "$1" == "--draft" || "$1" == "-d" ]]; then
@@ -197,9 +197,9 @@ create-pr() {
   git --no-pager diff --stat "$base".."$branch" | sed 's/^/  /'
   echo ""
 
-  # Generate PR title and body with Claude
+  # Generate PR title and body with Pi
   echo "Generating PR description..."
-  local pr_content=$(claude --print -p "Generate a GitHub PR title and body for the commits on this branch. Format:
+  local pr_content=$(pi --print "Generate a GitHub PR title and body for the commits on this branch. Format:
 TITLE: <short descriptive title>
 BODY:
 <markdown body with summary and key changes>

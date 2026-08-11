@@ -1,6 +1,6 @@
 ---
 name: improve-ui
-description: Point at a running UI — a URL, route, screen, or flow — and get a published preview of what it actually looks like plus ranked, concrete proposals for improving it. Drives the real app with agent-browser to capture screenshots and test states, judges the result against the UX skill's checklists, and publishes screenshots-and-proposals to preview.teppo.dev. Use for "improve this UI", "make this screen better", "review the design of X", "what's wrong with this page".
+description: Point at a running UI — a screen, or a whole task flow like creating something, signing up, or checking out — and get a published preview of what it actually looks like plus ranked, concrete proposals for improving it. Drives the real app with agent-browser to capture screenshots and test states, judges the result against the UX skill's checklists, and publishes screenshots-and-proposals to preview.teppo.dev. Use for "improve this UI", "make this screen better", "improve the create-X flow", "review the design of X", "what's wrong with this page".
 ---
 
 # Improve UI
@@ -26,8 +26,20 @@ afterwards through the preview skill's approved-preview path.
 
 ## 1. Resolve the target
 
-The invocation should name the place to improve: a URL, a route, a screen, a
-flow, or an app. Everything else you work out yourself.
+The invocation should name the place to improve. It comes in two shapes, and
+which one it is changes what you capture and what you judge:
+
+- **A surface** — a URL, route, screen, or page. "Improve the settings page."
+- **A flow** — a task the user is trying to finish across several steps.
+  "Improve creating a project", onboarding, sign-up, checkout, invite a
+  teammate, publish. A flow is named by its *goal*, not its routes; your job is
+  to find the entry point and walk the whole thing to done.
+
+If the target names a task or a verb, treat it as a flow even when it happens
+to live on one screen — a one-screen create form still has a sequence, defaults,
+validation timing, and a "what now" moment after submit.
+
+Everything else you work out yourself.
 
 Before asking the user anything, find out from the repo:
 
@@ -42,8 +54,14 @@ codebase answers. If the invocation named no place at all, list the routes you
 found and ask which one, with a recommendation.
 
 Fix these before opening the browser: reachable URL(s), scope (which
-screens/states are in), viewports (default: 1440×900 desktop and 390×844
-mobile), and whether the app has a dark theme worth checking.
+screens/states are in, or where the flow starts and what counts as done),
+viewports (default: 1440×900 desktop and 390×844 mobile), and whether the app
+has a dark theme worth checking.
+
+For a flow, also decide the **goal you will actually carry out** — a specific,
+realistic task with real-looking data ("create a project called Q3 Migration
+and invite one teammate"), not a click-through. You have to finish it to know
+where it hurts.
 
 ## 2. Load the rules
 
@@ -90,9 +108,36 @@ Then **test it**, don't just photograph it:
 - **Health:** `agent-browser console`, `agent-browser errors`, and
   `agent-browser vitals` — layout shift and a slow LCP are UI problems.
 
-Record what you could not reach (a state behind data you don't have, a flow
-requiring a second user) and say so in the preview. Never illustrate a state
-you did not observe.
+### Walking a flow
+
+For a flow target, do the task for real, start to finish, and screenshot
+**every step in order** — including the moments between screens: the entry
+point that starts it, each step, the submit, and whatever the app shows you
+after it succeeds. Number the shots by step (`shots/02-details-desktop.png`) so
+the sequence survives into the preview.
+
+While walking, keep a running log of things a per-screen review cannot see:
+
+- **Step count and what each step asks for** — and which fields could have been
+  defaulted, inferred, deferred, or dropped.
+- **Where you had to leave** to fetch something the flow needed (an ID, a name,
+  a file) and whether the flow helped you get back.
+- **Back, cancel, and close** at every step: what is lost, what is kept, and
+  where you land. Try the browser Back button too, not just the app's.
+- **Interruption and resume** — reload mid-flow and re-open the entry point.
+  Is the half-finished work still there, and does the app admit it exists?
+- **Failure at the worst moment** — force the final submit to fail
+  (`network route "**/api/**" --abort`) and see whether the input survives.
+- **The landing** — after success, does it tell you what happened, where the
+  thing went, and what to do next, or drop you on a list?
+
+Then re-walk the unhappy paths: the empty/first-run version of the flow (no
+existing data), and the validation path where you submit each step wrong before
+getting it right.
+
+Record what you could not reach (a state behind data you don't have, a step
+requiring a second user or a real payment) and say so in the preview. Never
+illustrate a state you did not observe.
 
 **Evidence rule:** every finding names the screenshot, the viewport, and the
 action that produced it. A claim with no shot behind it does not go in.
@@ -109,6 +154,22 @@ screen: what is this screen for, what decision or action is the user here to
 make, and what in the current design gets in the way? The best proposal is
 usually about hierarchy, sequence, or what to cut — not a control that is three
 pixels off.
+
+For a flow, judge the **shape of the task** before any single screen, because a
+step that shouldn't exist cannot be fixed by aligning it:
+
+- **Does every step earn its place?** Merge, reorder, default, infer, or defer
+  anything the user cannot answer confidently at that moment.
+- **Is the order the user's order?** Ask for what they came with first; push
+  configuration after the thing exists.
+- **Is the commitment honest?** The user should know how long this is, what is
+  required versus optional, and what happens on submit — before they start.
+- **Is it survivable?** Cancel, back, reload, and a failed submit should never
+  cost typed work without saying so first.
+- **Does it end?** Success should name the result, show where it lives, and
+  offer the obvious next action.
+
+Say plainly when the right fix is fewer steps rather than better ones.
 
 Rank proposals by leverage, and lead with the top three. Each one states:
 
@@ -129,11 +190,18 @@ Follow `skill://preview`. Slug: `<project>-ui-<area>` (e.g.
 `annury-ui-settings`). Shape the page for reacting, not reading:
 
 - **TL;DR** — the three biggest wins, before any detail.
-- **One `<section>` per screen**, with a stable id you'll recognise in
-  annotation feedback: the screenshot as a `<figure>` (linked to the full-size
-  image, `loading="lazy"`, `data-pa-zoom` for dense shots), what's wrong under
-  it, then the proposal. Use `.shot-grid` for desktop/mobile pairs and tabs for
-  before/after or state comparisons.
+- **One `<section>` per screen or per step**, with a stable id you'll recognise
+  in annotation feedback: the screenshot as a `<figure>` (linked to the
+  full-size image, `loading="lazy"`, `data-pa-zoom` for dense shots), what's
+  wrong under it, then the proposal. Use `.shot-grid` for desktop/mobile pairs
+  and tabs for before/after or state comparisons.
+- **For a flow, open with the step map** before the per-step sections: a
+  mermaid flowchart of the walk as it exists today — every step, branch,
+  cancel, and failure path you actually hit — and, when you propose a different
+  shape, the proposed map beside it in tabs. Sections then run in step order,
+  numbered as walked, so the page reads as the task. Keep the flow-level
+  proposals (what merges, what goes) above the per-step ones; a reader who
+  accepts a step's removal should not have to read its polish notes first.
 - **Build the "after"** for the top proposals as a static variant HTML file in
   the slug folder, styled with the project's real tokens, and put it next to
   the screenshot. A rebuilt screen beats a paragraph describing one. For

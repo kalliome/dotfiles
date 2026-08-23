@@ -37,6 +37,8 @@ Break the work into **tracer bullet** tickets.
 
 Give each ticket its **blocking edges** — the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
 
+**Always end with a final verification ticket.** The last ticket is blocked by every other ticket and delivers no new behaviour: it re-reads the original plan/spec, walks every preceding ticket's acceptance criteria against the actual code, and verifies the *whole* — end-to-end behaviour that only emerges once all slices land, plan requirements no single ticket owned, and integration seams between slices. Its acceptance criteria list the plan's top-level outcomes, not per-ticket ones. If it finds gaps, its job is to record them under `## Notes` as concrete follow-up work, not to silently pass.
+
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch.
 
 ### 4. Quiz the user

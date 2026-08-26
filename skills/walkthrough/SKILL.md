@@ -1,266 +1,169 @@
 ---
 name: walkthrough
-description: Interactive walkthrough of code changes with diagrams and step-by-step explanations
+description: Story-driven PR walkthrough published as an HTML preview. Finds the user stories inside a change set, walks each one through how the user triggers it and how the data flows, shows the code diff per file with an explanation of what was done and why, and groups mechanical churn at the end.
 argument-hint: "[focus-area]"
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion
+allowed-tools: Bash, Read, Grep, Glob, Write, Edit, Skill, AskUserQuestion
 ---
 
-# Code Walkthrough Skill
+# PR Walkthrough Skill
 
-Provide a comprehensive walkthrough of code changes with narrative explanation, ASCII diagrams, and step-by-step code analysis.
+Produce a walkthrough of the current change set as a published HTML page, built
+with the **preview** skill. The walkthrough is organised around the *stories*
+inside the PR — user-facing capabilities or flows — not around the file list.
+Each story is told the way a reviewer experiences the product: what the user
+does, what happens to the data, and then the actual diffs per file with an
+explanation of what was done and why. Repetitive mechanical changes are swept
+into a grouped section at the end so they don't drown the stories.
 
 ## Configuration
 
 **Focus Area (Optional):** $ARGUMENTS
 
-If provided, filter the walkthrough to changes related to the focus area (e.g., "authentication", "src/api/", "payment processing").
+If provided, filter the walkthrough to changes related to the focus area
+(e.g. "authentication", "src/api/", "payment processing") and say so at the
+top of the page.
 
 ## Step 1: Verify Git Repository
-
-First, verify we're in a git repository:
 
 ```bash
 git rev-parse --git-dir 2>&1
 ```
 
-If this fails, respond with:
-```
-Error: This directory is not a git repository.
-The walkthrough skill requires git to analyze code changes.
-
-To use this skill:
-1. Navigate to a git repository, or
-2. Initialize git with: git init
-```
-
-Then stop execution.
+If this fails, tell the user this directory is not a git repository and that
+the skill needs one (navigate to a repo or `git init`), then stop.
 
 ## Step 2: Detect Branch Context
 
-Determine the current branch and what to compare against:
-
 ```bash
-# Get current branch
 git branch --show-current
-
-# Check if main exists
-git rev-parse --verify main 2>/dev/null
-
-# Check if master exists
-git rev-parse --verify master 2>/dev/null
+git rev-parse --verify main 2>/dev/null || git rev-parse --verify master 2>/dev/null
 ```
 
-**Decision Logic:**
-- If on `main` → analyze uncommitted changes only (staged + unstaged)
-- If on `master` → analyze uncommitted changes only (staged + unstaged)
-- If on feature branch AND `main` exists → compare feature branch to `main`
-- If on feature branch AND `master` exists (no main) → compare feature branch to `master`
-- If on feature branch but no main/master → compare to the default branch or ask user
+- On `main`/`master` → analyze uncommitted changes only: `git diff HEAD`.
+- On a feature branch with `main` (or `master`) → `git diff main...HEAD`.
+- No main/master → compare to the default branch, or ask the user.
+
+Call the chosen range `$RANGE` below (empty range = `HEAD` for uncommitted
+changes).
 
 ## Step 3: Gather Changes
 
-Based on the branch context:
-
-**For uncommitted changes (on main/master):**
 ```bash
-# Get both staged and unstaged changes
-git diff HEAD
+git diff --name-status $RANGE
+git diff --stat $RANGE
+git diff $RANGE
 ```
 
-**For feature branches:**
-```bash
-# Get all changes since branching from main/master
-git diff main...HEAD  # or master...HEAD
-```
+Also capture the commit messages in the range (`git log --oneline $RANGE`
+style) — they often name the stories for you.
 
-Also get the list of changed files:
-```bash
-git diff --name-status main...HEAD  # or appropriate comparison
-```
+Read the current version of every meaningfully changed file (or the relevant
+parts) so explanations come from understanding the code, not just the diff
+hunks.
 
-## Step 4: Filter by Focus Area (If Provided)
+## Step 4: Find the Stories
 
-If `$ARGUMENTS` is provided, filter the diff and file list to only include relevant changes:
+This is the heart of the skill. Cluster the changes into **stories** — coherent
+units a reviewer can hold in their head. A story is one of:
 
-- Use grep to filter files matching the focus area
-- Read only the relevant portions of the diff
-- Mention at the start: "Focusing walkthrough on: [focus area]"
+- **A user story**: something a user can now do, or does differently.
+  Title it in user-story form: *"A user can reset their password from the
+  login screen"*, not *"Changes to auth module"*.
+- **A data-flow story**: for backend/infra changes with no visible UI, the
+  journey of a piece of data: *"Order events now flow through the outbox
+  table before hitting the queue"*.
 
-## Step 5: Analyze Changes (Read the Code)
+Rules for clustering:
 
-For each changed file:
-1. Read the current version of the file
-2. Understand the context and purpose
-3. Note the specific changes made
-4. Identify patterns: new features, bug fixes, refactoring, etc.
+- Aim for **1–5 stories** per PR. If you find more, some are probably the same
+  story or belong in the mechanical bucket.
+- Assign every changed file to exactly one story **or** to the mechanical
+  bucket (Step 6). Nothing gets silently dropped — a coverage check at the end
+  must account for every file in `--name-status`.
+- The **mechanical bucket** catches wide, same-shaped churn: renames and moved
+  imports, lockfiles and generated code, formatting-only diffs, version bumps,
+  a one-line signature change rippled through many call sites, test snapshot
+  updates. The test: if the tenth file teaches the reviewer nothing the first
+  file didn't, it's mechanical.
+- Use commit messages, route/handler names, and UI entry points to name
+  stories. Only use AskUserQuestion if the purpose of a large change is
+  genuinely ambiguous after reading the code.
 
-## Step 6: Ask Deepening Questions (Only If Needed)
+## Step 5: Tell Each Story
 
-**Important:** Only ask questions if something is truly unclear or ambiguous.
+Each story becomes one `<section>` on the page with a stable kebab-case id,
+containing in order:
 
-Examples of when to ask:
-- Large architectural changes without clear purpose
-- Multiple possible interpretations of the changes
-- Unclear data flow or business logic
+1. **The story** — one short paragraph: who does what, and why this change
+   exists.
+2. **The walkthrough** — how the user moves through it, or how the data flows.
+   Narrate it as a sequence: *user clicks X → handler Y validates → service Z
+   writes → …*. Ground every step in the actual code: name the function,
+   route, or component that handles it.
+3. **A mermaid diagram** of the flow — sequence diagram for interactions,
+   flowchart for data pipelines. Mark which nodes are new vs. modified. Skip
+   the diagram only when the story is a trivial one-file change.
+4. **Per-file diffs with explanations** — for every file in the story, in the
+   order the flow visits them:
+   - A heading with the file path and change type (added/modified/deleted).
+   - **What was done** and **why** — 2–5 sentences of prose. The "why" is the
+     valuable half: what problem it solves, why this approach, what it
+     connects to in the other files of this story.
+   - The **actual diff** for that file (`git diff $RANGE -- <path>`), rendered
+     as described under "Diff rendering" below. Long diffs (> ~80 lines) go
+     inside a collapsed `<details class="acc">`; short ones stay open.
 
-Use the AskUserQuestion tool sparingly. Most of the time, infer intent from the code.
+## Step 6: Supporting Changes (the mechanical tail)
 
-## Step 7: Create the Story
+After the stories, one section (e.g. `id="supporting-changes"`) for the
+mechanical bucket, grouped **by type of change**, not by directory:
 
-Write a narrative explanation of what these changes accomplish:
+- One group per pattern: *"Import path updates after the module rename
+  (23 files)"*, *"Lockfile and dependency bumps"*, *"Snapshot updates"*.
+- Each group gets: one shared explanation of what was done and why (once, not
+  per file), the full file list, and **one representative diff** open plus the
+  rest collapsed in accordions. For truly identical churn (lockfiles,
+  generated code) the file list alone is enough — say so explicitly.
 
-### Story Format:
+## Step 7: Build and Publish the Preview
 
-```
-## Code Changes Story
+Invoke the **preview** skill (Skill tool, `skill: "preview"`) and follow it —
+slug naming (`<project>-walkthrough-<topic>`), `base.css` or inherited project
+tokens, `<section>` ids, mermaid via `/_assets/mermaid.min.js`, self-check,
+and narration. Walkthrough-specific guidance on top of it:
 
-[Brief overview: what was changed and why]
+**Page structure:**
 
-### Context
-[What problem is being solved or what feature is being added]
+1. **TL;DR callout** at the top: branch, base, files changed, and the list of
+   stories in one line each — the 10-second version of the PR.
+2. One section per story (Step 5), in order of importance.
+3. The supporting-changes section (Step 6).
+4. A short **review guide** at the end: what to look at most carefully, what
+   should be tested, known risks.
 
-### Changes Overview
-[High-level summary of what files were modified and the nature of changes]
+**Diff rendering:** render diffs in a `<pre class="diff">` block with
+page-local CSS in the story sections. HTML-escape the diff text, then wrap
+lines in spans: additions (`+`) tinted with `--ok`, deletions (`-`) with
+`--danger`, hunk headers (`@@`) with `--muted` — background tints ≤ 8%, no
+extra borders or shadows, monospace from `--mono`. Keep the `+`/`-` markers in
+the text so the diff is copy-pasteable. Give the block `overflow-x: auto`.
 
-### Key Modifications
-[Bullet points of the most important changes:
-- Component X was updated to...
-- Function Y now handles...
-- New module Z was added to...]
+**Narration:** a PR walkthrough is substantial — write `narration.md` and run
+narrate per the preview skill. The script tells the stories and the review
+guide; it never reads diffs aloud.
 
-### Data Flow
-[How data moves through the system with these changes]
+## Step 8: Reply in the Terminal
 
-### Impact
-[What parts of the system are affected]
-```
-
-## Step 8: Create ASCII Diagram
-
-Generate an ASCII art diagram showing the architecture, data flow, or component relationships affected by these changes.
-
-### Diagram Guidelines:
-
-- Use simple ASCII characters: `+`, `-`, `|`, `*`, `>`, `<`, `^`, `v`
-- Show components as boxes
-- Show data flow with arrows
-- Label each element clearly
-- Keep it readable and properly aligned
-- Maximum width: 80 characters
-
-### Example Diagram Format:
-
-```
-┌─────────────────┐
-│  User Request   │
-└────────┬────────┘
-         │
-         v
-┌─────────────────┐     ┌──────────────┐
-│  Controller     │────>│   Service    │
-│  (Modified)     │     │  (New)       │
-└─────────────────┘     └──────┬───────┘
-                                │
-                                v
-                        ┌──────────────┐
-                        │  Database    │
-                        └──────────────┘
-```
-
-Or use simpler ASCII:
-
-```
-User Request
-     |
-     v
-Controller (Modified) ---> Service (New)
-                                |
-                                v
-                            Database
-```
-
-Choose the style that best represents the changes.
-
-## Step 9: Step-by-Step Code Explanation
-
-Walk through each changed file and explain the code changes:
-
-### Format:
-
-```
-## Step-by-Step Code Walkthrough
-
-### File: path/to/file.ts
-
-**Change Type:** [Added/Modified/Deleted]
-
-**Purpose:** [What this file does in the context of the changes]
-
-**Key Changes:**
-
-1. **Lines X-Y:** [Function/block name]
-   ```typescript
-   [relevant code snippet]
-   ```
-
-   Explanation: [What this code does and why it changed]
-
-   Data flow: [If applicable, how data moves through this code]
-
-2. **Lines A-B:** [Next significant change]
-   [continue pattern...]
-
-**Integration:** [How this file integrates with other changed files]
-
----
-
-### File: path/to/next-file.ts
-[Continue same pattern...]
-```
-
-### Code Snippet Guidelines:
-
-- Show only the most relevant changed portions (5-15 lines)
-- Include enough context to understand the change
-- Use proper syntax highlighting in code blocks
-- Explain the "why" not just the "what"
-- Highlight the data flow and transformations
-
-## Step 10: Summary
-
-End with a concise summary:
-
-```
-## Walkthrough Summary
-
-**Files Changed:** [count]
-**Change Type:** [Feature/Bugfix/Refactor/etc.]
-**Complexity:** [Low/Medium/High]
-
-**Key Takeaways:**
-- [Main point 1]
-- [Main point 2]
-- [Main point 3]
-
-**Testing Recommendations:**
-- [What should be tested based on these changes]
-```
-
-## Output Order
-
-Present the walkthrough in this order:
-1. Branch context message
-2. Story
-3. ASCII Diagram
-4. Step-by-Step Code Explanation
-5. Summary
+End with a short summary: the stories found (one line each), the size of the
+mechanical tail, and the preview link `https://preview.teppo.dev/<slug>/`.
+Do not duplicate the full walkthrough in the terminal.
 
 ## Style Guidelines
 
-- Be clear and concise
-- Use technical language but explain complex concepts
-- Focus on understanding the "why" behind changes
-- Highlight important patterns and architectural decisions
-- Keep ASCII diagrams simple and readable
-- Use code references with line numbers when relevant
+- The story order is the reviewer's reading order — put the riskiest or most
+  interesting story first.
+- Explain the "why" over the "what"; the diff already shows the what.
+- Every step of a flow narrative names real code (`file.ts:line`, function,
+  route) so the reader can jump from prose to diff.
+- Never pad: a one-story PR gets a one-story page.

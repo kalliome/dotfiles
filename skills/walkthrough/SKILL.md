@@ -149,6 +149,21 @@ lines in spans: additions (`+`) tinted with `--ok`, deletions (`-`) with
 extra borders or shadows, monospace from `--mono`. Keep the `+`/`-` markers in
 the text so the diff is copy-pasteable. Give the block `overflow-x: auto`.
 
+Line spacing must look like a terminal diff — **no gaps between lines**. The
+bug to avoid: a `display: block` span *plus* a literal newline after it inside
+`<pre>` renders as the line and then a blank line. Pick one line-break
+mechanism, never both:
+
+- Preferred: keep spans **inline** (default display, no width/margin/padding)
+  and let the single `\n` after each span be the only line break:
+  `<span class="add">+foo</span>\n<span class="del">-bar</span>\n`.
+- If a line needs a full-width background, make spans `display: block` and
+  emit them with **no whitespace between** them in the HTML source.
+
+Set `line-height` ≈ 1.4–1.5 on the block and zero vertical margin/padding on
+line spans. Verify in the rendered page (visual iteration step) that diff
+lines sit flush before publishing.
+
 **Narration:** a PR walkthrough is substantial — write `narration.md` and run
 narrate per the preview skill. The script tells the stories and the review
 guide; it never reads diffs aloud.

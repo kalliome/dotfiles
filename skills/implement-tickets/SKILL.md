@@ -1,6 +1,6 @@
 ---
 name: implement-tickets
-description: Orchestrate implementation of the local tickets in .work/tickets — work the dependency frontier, delegate each ticket to a fresh agent, commit per ticket, then thermo-review the whole run once at the end and land the fixes as a final commit. Runs autonomously to completion without asking questions.
+description: Orchestrate implementation of local tickets in .work/tickets — load each initiative's reviewed research, design, and plan; work the dependency frontier; delegate and commit each aligned ticket; then review the whole run against the source documents.
 disable-model-invocation: true
 ---
 
@@ -14,10 +14,11 @@ Optional argument: one or more ticket ids (`/implement-tickets 03 04`) restricts
 
 <autonomy>
 
-- **Never ask the user a question.** When a decision is ambiguous, pick the option most consistent with the existing codebase, proceed, and record the choice under `## Notes` in the ticket file.
+- **Never ask the user a question.** When an implementation detail is ambiguous but the source documents are consistent, pick the option most consistent with those documents and the existing codebase, proceed, and record the choice under `## Notes`. Never guess through a document conflict.
 - Only stop early if the repo is not a git repo, `.work/tickets/` is missing or empty, or every remaining ticket is `blocked`.
 - If a ticket genuinely cannot be completed (missing credentials, an external dependency that does not exist, a contradiction with the code that no reasonable assumption resolves), set its `status: blocked`, append the reason under `## Notes`, commit that status change, and move on to the next ticket. Never leave a ticket `in-progress`.
 - Work through to the end of the frontier, then run the single final thermo-review, then report. The user reads the summary once, at the end.
+- **Never implement from a ticket alone.** Its `context` documents are required input. Read them in order and treat a conflict or missing document as a blocker, not permission to guess.
 
 </autonomy>
 
@@ -28,9 +29,16 @@ Optional argument: one or more ticket ids (`/implement-tickets 03 04`) restricts
 3. Learn this project's commit conventions: read the project `CLAUDE.md` (and `~/.claude/CLAUDE.md`) and skim `git log --oneline -20` for the message style actually in use.
 4. Identify the project's verification commands (test / typecheck / lint / build) from `package.json`, `Makefile`, `CLAUDE.md`, or CI config. You will run them after every ticket.
 
-## 1. Build the graph
+## 1. Load source documents and build the graph
 
-Read every `.work/tickets/*.md` and parse its frontmatter (`id`, `title`, `status`, `blocked_by`).
+Read every ticket file at the root of `.work/tickets/` and parse its frontmatter (`id`, `title`, `status`, `blocked_by`, `context`). The initiative documents live below that root and are not tickets.
+
+For every unfinished ticket in this run:
+
+1. Require `context` to name a repository-relative directory containing `research.md`, `design.md`, and `plan.md`. A missing field or document blocks the affected ticket.
+2. Read those documents in order: research, design, then plan. Do this before claiming or delegating the ticket.
+3. Check the ticket against all three documents. Its outcome must implement a plan stage, its acceptance criteria must preserve the researched constraints and design decisions, and its `blocked_by` edges must enforce the plan's prerequisite gates.
+4. Reconcile a clear ticket-decomposition mismatch to the documents before implementation. If reconciliation requires a new product or design decision, set the ticket to `blocked` and record the exact conflict under `## Notes`.
 
 The **frontier** is every ticket with `status: todo` (or `in-progress` left over from an interrupted run) whose `blocked_by` ids are all `done`. Work the frontier one ticket at a time, lowest id first — sequential, not parallel, so each ticket's commit lands on a clean base.
 
@@ -42,9 +50,9 @@ After each ticket completes, recompute the frontier. Stop when it is empty.
 
 **a. Claim it.** Set `status: in-progress` in the ticket's frontmatter.
 
-**b. Implement it in a fresh agent.** Delegate to a subagent (`general-purpose`) with a self-contained prompt: the full ticket body, the acceptance criteria, the project conventions you learned in preflight, and these instructions — implement the whole ticket including tests, do not commit anything, do not touch files unrelated to this ticket, report the files changed and how each acceptance criterion is met. A fresh context per ticket is the point; do not implement it inline yourself.
+**b. Implement it in a fresh agent.** Delegate to a subagent (`general-purpose`) with a self-contained prompt containing the full ticket body, the exact `context` path, the project conventions learned in preflight, and these instructions: first read `research.md`, `design.md`, and `plan.md` in that order; then implement the whole ticket including tests without violating their evidence, decisions, constraints, or execution order; do not commit; do not touch files unrelated to this ticket; report the files changed, how each acceptance criterion is met, and any document conflict. A fresh context per ticket is the point; do not implement it inline yourself.
 
-**c. Verify.** Run the project's test / typecheck / lint commands yourself. If anything fails, fix it (directly, or via another subagent) until it passes. Never mark a ticket done on a red build.
+**c. Verify.** Check the implementation against the ticket and all three source documents, then run the project's test / typecheck / lint commands yourself. If behaviour has drifted from the documented design or anything fails, fix it (directly, or via another subagent) until the implementation is aligned and the checks pass. Never mark a ticket done on a red build or an unresolved document conflict.
 
 **d. Close it.** Set `status: done` and append a short `## Result` section to the ticket file: what was built and any assumptions taken.
 
@@ -67,11 +75,12 @@ No review here — the frontier runs straight through. Review happens once, in s
 Once the frontier is empty, review the **whole run at once** — one review, not one per ticket.
 
 1. Compute the run's diff: `git diff <base-sha>..HEAD` using the base sha from preflight, excluding the pre-existing modified files you recorded there. If the diff is very large, split it by area (not by ticket) across a few reviewer subagents running in parallel.
-2. Read `~/.claude/skills/thermo-review/SKILL.md` and hand its full content plus the diff to the reviewer subagent(s). Ask for concrete findings, most severe first, each anchored to `file:line`.
-3. **Fix everything** in scope of the tickets just implemented — including the ambitious structural ones, that is what the review is for. A finding that spans several tickets is still in scope: it is the run's diff being reviewed, not one ticket's.
-4. A finding that is real but genuinely outside the run's scope does not get smuggled in: write it as a **new ticket file** in `.work/tickets/` (next free id, `status: todo`) and note it in the summary. Do not implement it in this run.
-5. Re-run the project's verification commands. Never finish on a red build.
-6. Commit the fixes as a **single final commit** on the current branch (split only if the fixes are genuinely separable). Stage only the files you touched. Use a `Ticket: review` trailer instead of a ticket id, and list the tickets the fixes cover in the body.
+2. Read `~/.claude/skills/thermo-review/SKILL.md`. Give each reviewer its source document set — research, design, and plan — plus the relevant diff and the review skill. Ask for document-conformance findings as well as concrete code findings, most severe first, each anchored to `file:line`.
+3. Verify plan coverage across the complete diff: every planned outcome exists, prerequisite boundaries hold, researched constraints are preserved, and the implemented architecture, failure behaviour, load handling, performance characteristics, monitoring, and extension seams match the design.
+4. **Fix everything** in scope of the tickets just implemented — including ambitious structural findings. A finding that spans several tickets is still in scope: it is the run's diff and documented initiative being reviewed, not one ticket in isolation.
+5. A finding that is real but genuinely outside the run's documented scope does not get smuggled in: write it as a **new ticket file** in `.work/tickets/` (next free id, `status: todo`, with the same `context`) and note it in the summary. Do not implement it in this run.
+6. Re-run the project's verification commands. Never finish on a red build.
+7. Commit the fixes as a **single final commit** on the current branch (split only if the fixes are genuinely separable). Stage only the files you touched. Use a `Ticket: review` trailer instead of a ticket id, and list the tickets the fixes cover in the body.
 
 ## 4. Report
 

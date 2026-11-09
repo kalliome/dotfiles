@@ -52,7 +52,13 @@ A lesson should be **beautiful**, with clean, readable typography and layout, si
 
 The lesson should be short, and completable very quickly. Learners' working memory is very small, and we need to stay within it. But each lesson should give the user a single tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 
-If possible, open the lesson file for the user by running a CLI command.
+The user works headless, so don't try to open the lesson locally. Serve the workspace over Tailscale and give them the URL instead:
+
+1. Get the Tailscale IP with `tailscale ip -4`.
+2. If no lesson server is already running for this workspace, start one in the background from the workspace root (so `./lessons/` and `./assets/` both resolve), bound to that IP: `python3 -m http.server <port> --bind <tailscale-ip>`. Pick a free port and reuse the same one across the session.
+3. Send the user `http://<tailscale-ip>:<port>/lessons/<lesson-file>.html`.
+
+Never bind to `localhost` or `127.0.0.1` — the user can't reach it from their device.
 
 Each lesson should link via HTML anchors to other lessons and reference documents.
 
